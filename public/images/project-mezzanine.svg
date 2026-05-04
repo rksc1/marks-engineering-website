@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Two-floor mezzanine">
+  <rect width="1200" height="900" fill="#f1f5f9"/>
+  <rect y="700" width="1200" height="200" fill="#cbd5e1"/>
+  <g stroke="#111827" stroke-width="18" fill="none"><path d="M170 700V250M430 700V250M770 700V250M1030 700V250M140 340h920M140 520h920M140 700h920"/></g>
+  <g stroke="#f97316" stroke-width="10" fill="none"><path d="M180 520l250-180 340 180 260-180M180 700l250-180 340 180 260-180"/></g>
+  <rect x="160" y="245" width="900" height="65" fill="#475569"/>
+</svg>

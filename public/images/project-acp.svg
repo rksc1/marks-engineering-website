@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="ACP support structure">
+  <rect width="1200" height="900" fill="#e2e8f0"/>
+  <rect x="230" y="120" width="740" height="680" fill="#0f172a"/>
+  <g fill="#f8fafc"><rect x="300" y="190" width="250" height="180"/><rect x="650" y="190" width="250" height="180"/><rect x="300" y="470" width="250" height="230"/><rect x="650" y="470" width="250" height="230"/></g>
+  <g stroke="#f97316" stroke-width="12"><path d="M275 150v610M600 150v610M925 150v610M260 420h680"/></g>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Oxygen plant shed">
+  <rect width="1200" height="900" fill="#dbeafe"/>
+  <rect y="650" width="1200" height="250" fill="#94a3b8"/>
+  <rect x="160" y="350" width="880" height="300" fill="#334155"/>
+  <path d="M120 360h960L600 190z" fill="#0f172a"/>
+  <g fill="#f8fafc"><rect x="250" y="420" width="140" height="230"/><rect x="455" y="420" width="140" height="230"/><rect x="660" y="420" width="140" height="230"/></g>
+  <g stroke="#f97316" stroke-width="14" fill="none"><path d="M890 650V360M920 650V360M875 450h60"/></g>
+</svg>
