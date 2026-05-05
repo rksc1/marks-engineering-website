@@ -1,78 +1,64 @@
 import { NextResponse } from "next/server";
 
-import { sendInquiryEmail } from "@/lib/email";
-import { MAX_DRAWING_SIZE, saveLead } from "@/lib/leads";
+import { sendQuoteAcknowledgement, sendQuoteAdminNotification } from "@/lib/email";
+import { storeQuoteUpload } from "@/lib/files";
+import { quoteRequestSchema } from "@/lib/quote-schema";
+import { createQuoteRequest } from "@/lib/quotes";
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const drawing = formData.get("drawing");
-    let drawingPayload;
-    const drawingInfo =
-      drawing instanceof File && drawing.size > 0
-        ? `${drawing.name} (${Math.round(drawing.size / 1024)} KB, ${drawing.type || "unknown type"})`
-        : "No drawing uploaded";
+    const parsed = quoteRequestSchema.safeParse(Object.fromEntries(formData));
 
-    if (drawing instanceof File && drawing.size > 0) {
-      if (drawing.size > MAX_DRAWING_SIZE) {
-        return NextResponse.json({ error: "Drawing must be 8MB or smaller" }, { status: 413 });
-      }
-
-      drawingPayload = {
-        name: drawing.name,
-        type: drawing.type || "application/octet-stream",
-        size: drawing.size,
-        data: Buffer.from(await drawing.arrayBuffer())
-      };
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const fields = {
-      name: String(formData.get("name") || ""),
-      phone: String(formData.get("phone") || ""),
-      email: String(formData.get("email") || ""),
-      company: String(formData.get("company") || ""),
-      projectType: String(formData.get("projectType") || ""),
-      description: String(formData.get("description") || ""),
-      materialType: String(formData.get("materialType") || ""),
-      quantity: String(formData.get("quantity") || ""),
-      siteLocation: String(formData.get("siteLocation") || ""),
-      drawing: drawingInfo
-    };
+    const upload = formData.get("drawing");
+    const storedFile = upload instanceof File && upload.size > 0 ? await storeQuoteUpload(upload, "quotes") : null;
+    const deadline = parsed.data.deadline ? new Date(parsed.data.deadline) : null;
 
-    if (
-      !fields.name ||
-      !fields.phone ||
-      !fields.email ||
-      !fields.projectType ||
-      !fields.description ||
-      !fields.materialType ||
-      !fields.siteLocation
-    ) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const id = await saveLead({
-      kind: "quote",
-      name: fields.name,
-      phone: fields.phone,
-      email: fields.email,
-      company: fields.company,
-      projectType: fields.projectType,
-      description: fields.description,
-      materialType: fields.materialType,
-      quantity: fields.quantity,
-      siteLocation: fields.siteLocation,
-      drawing: drawingPayload
+    const quote = await createQuoteRequest({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      phone: parsed.data.phone || null,
+      company: parsed.data.company || null,
+      title: parsed.data.title,
+      category: parsed.data.category,
+      description: parsed.data.description,
+      materialType: parsed.data.materialType,
+      quantity: parsed.data.quantity || null,
+      budgetRange: parsed.data.budgetRange || null,
+      deadline,
+      siteLocation: parsed.data.siteLocation || null,
+      fileUrl: storedFile?.fileUrl || null,
+      fileName: storedFile?.fileName || null,
+      fileType: storedFile?.fileType || null,
+      fileSize: storedFile?.fileSize || null
     });
 
-    await sendInquiryEmail({
-      subject: `Quote request: ${fields.projectType} from ${fields.name}`,
-      fields: { leadId: id, ...fields }
-    });
+    await Promise.all([
+      sendQuoteAcknowledgement({
+        to: quote.email,
+        name: quote.name,
+        quoteId: quote.quoteId,
+        title: quote.title
+      }),
+      sendQuoteAdminNotification({
+        quoteId: quote.quoteId,
+        name: quote.name,
+        email: quote.email,
+        phone: quote.phone,
+        company: quote.company,
+        title: quote.title,
+        category: quote.category,
+        description: quote.description
+      })
+    ]);
 
-    return NextResponse.json({ ok: true, id });
+    return NextResponse.json({ ok: true, quoteId: quote.quoteId });
   } catch (error) {
     console.error("Quote submission failed", error);
-    return NextResponse.json({ error: "Quote submission failed" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Quote submission failed" }, { status: 500 });
   }
 }
