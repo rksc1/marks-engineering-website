@@ -52,6 +52,16 @@ export type AdminUserDocument = {
   updatedAt: Date;
 };
 
+export type CustomerDocument = {
+  _id?: ObjectId;
+  name: string;
+  email: string;
+  phone: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLoginAt?: Date;
+};
+
 export type QuoteFilters = {
   query?: string;
   status?: QuoteStatus | "";
@@ -93,6 +103,19 @@ export async function getQuoteRequestByQuoteId(quoteId: string) {
   const db = await getDb();
   const quote = await db.collection<QuoteRequestDocument>("quote_requests").findOne({ quoteId });
   return quote ? normalizeQuote(quote) : null;
+}
+
+export async function getCustomerQuotes(customer: { email: string; phone: string }) {
+  const db = await getDb();
+  const phone = normalizePhone(customer.phone);
+  const quotes = await db
+    .collection<QuoteRequestDocument>("quote_requests")
+    .find({
+      $or: [{ email: customer.email.toLowerCase() }, { phone }, { phone: customer.phone }]
+    })
+    .sort({ createdAt: -1 })
+    .toArray();
+  return quotes.map(normalizeQuote);
 }
 
 export async function updateQuoteRequest(id: string, data: Partial<Pick<QuoteRequestDocument, "status" | "adminNotes" | "tags" | "followUpAt">>) {
@@ -164,6 +187,45 @@ export async function findAdminUser(email: string) {
   return db.collection<AdminUserDocument>("admin_users").findOne({ email });
 }
 
+export async function upsertCustomer(data: { name: string; email: string; phone: string }) {
+  const db = await getDb();
+  const now = new Date();
+  const email = data.email.trim().toLowerCase();
+  const phone = normalizePhone(data.phone);
+
+  await db.collection<CustomerDocument>("customers").updateOne(
+    { email },
+    {
+      $set: {
+        name: data.name.trim(),
+        email,
+        phone,
+        updatedAt: now,
+        lastLoginAt: now
+      },
+      $setOnInsert: {
+        createdAt: now
+      }
+    },
+    { upsert: true }
+  );
+
+  const customer = await db.collection<CustomerDocument>("customers").findOne({ email });
+  if (!customer) throw new Error("Unable to create customer");
+  return normalizeCustomer(customer);
+}
+
+export async function findCustomerByEmailAndPhone(emailValue: string, phoneValue: string) {
+  const db = await getDb();
+  const email = emailValue.trim().toLowerCase();
+  const phone = normalizePhone(phoneValue);
+  const customer = await db.collection<CustomerDocument>("customers").findOne({ email, phone });
+  if (!customer) return null;
+
+  await db.collection<CustomerDocument>("customers").updateOne({ _id: customer._id }, { $set: { lastLoginAt: new Date(), updatedAt: new Date() } });
+  return normalizeCustomer(customer);
+}
+
 async function generateQuoteId() {
   const db = await getDb();
   const year = new Date().getFullYear();
@@ -174,6 +236,17 @@ async function generateQuoteId() {
     }
   });
   return `ME-${year}-${String(count + 1).padStart(4, "0")}`;
+}
+
+function normalizeCustomer(customer: CustomerDocument) {
+  return {
+    ...customer,
+    id: customer._id?.toString() || ""
+  };
+}
+
+export function normalizePhone(value: string) {
+  return value.replace(/[^\d+]/g, "");
 }
 
 function buildQuoteFilter(filters: QuoteFilters) {

@@ -33,6 +33,7 @@ The app still accepts `ADMIN_PASSWORD` as a fallback, which is practical for thi
 ## Collections
 
 - `quote_requests`: customer quote requests, status, uploaded drawing metadata, tags, follow-up dates, and embedded reply history.
+- `customers`: customer portal accounts created with name, email, and mobile number.
 - `admin_users`: optional database-backed admin users.
 - `vendors`: reserved future collection for vendor/job assignment workflows.
 
@@ -49,6 +50,7 @@ For production, move these uploads to object storage such as S3, Cloudinary, or 
 3. Admin logs in at `/admin/login`.
 4. Admin manages quote status, notes, tags, follow-up date, replies, and PDFs from `/admin`.
 5. Customer tracks status from `/track-quote`.
+6. Registered customers use `/customer/login` to see all quotes linked to their email or mobile number and track approved/in-production work progress.
 
 ## Local run
 
