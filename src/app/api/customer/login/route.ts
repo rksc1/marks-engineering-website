@@ -1,24 +1,25 @@
 import { NextResponse } from "next/server";
 
 import { createCustomerSessionValue, CUSTOMER_COOKIE } from "@/lib/customer-auth";
-import { findCustomerByEmailAndPhone } from "@/lib/quotes";
+import { findCustomerByEmailAndPassword } from "@/lib/quotes";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const email = String(formData.get("email") || "").trim().toLowerCase();
-  const phone = String(formData.get("phone") || "").trim();
+  const password = String(formData.get("password") || "");
 
-  if (!email || !phone) {
+  if (!email || !password) {
+    console.warn("Customer login missing fields", { email: Boolean(email), password: Boolean(password) });
     return NextResponse.redirect(new URL("/customer/login?error=missing", request.url));
   }
 
   try {
-    const customer = await findCustomerByEmailAndPhone(email, phone);
+    const customer = await findCustomerByEmailAndPassword(email, password);
     if (!customer) {
       return NextResponse.redirect(new URL("/customer/login?error=invalid", request.url));
     }
 
-    const response = NextResponse.redirect(new URL("/customer", request.url));
+    const response = NextResponse.redirect(new URL("/", request.url));
     response.cookies.set(CUSTOMER_COOKIE, createCustomerSessionValue(customer), {
       httpOnly: true,
       sameSite: "lax",

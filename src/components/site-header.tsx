@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Phone, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,24 @@ const navItems = [
 export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [customer, setCustomer] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/customer/session", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data?.name) setCustomer(data);
+      } catch {
+        // ignore
+      }
+    }
+
+    loadSession();
+  }, []);
+
+  const customerName = customer?.name?.split(" ")[0] ?? "";
 
   return (
     <header className="sticky top-0 z-50 border-b bg-white/92 backdrop-blur">
@@ -63,12 +81,20 @@ export function SiteHeader() {
         {/* RIGHT SIDE */}
         <div className="hidden items-center gap-2 lg:flex">
 
-          {/* LOGIN */}
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/customer/login">
-              Login
-            </Link>
-          </Button>
+          {/* CUSTOMER */}
+          {customer ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/customer">
+                Hi, {customerName}
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/customer/login">
+                Login
+              </Link>
+            </Button>
+          )}
 
           {/* CALL */}
           <Button asChild variant="outline" size="sm">
@@ -125,14 +151,24 @@ export function SiteHeader() {
               </Link>
             ))}
 
-            {/* LOGIN */}
-            <Link
-              href="/customer/login"
-              onClick={() => setOpen(false)}
-              className="px-3 py-3 text-sm font-semibold text-zinc-700"
-            >
-              Customer Login
-            </Link>
+            {/* CUSTOMER */}
+            {customer ? (
+              <Link
+                href="/customer"
+                onClick={() => setOpen(false)}
+                className="px-3 py-3 text-sm font-semibold text-zinc-700"
+              >
+                Hi, {customerName}
+              </Link>
+            ) : (
+              <Link
+                href="/customer/login"
+                onClick={() => setOpen(false)}
+                className="px-3 py-3 text-sm font-semibold text-zinc-700"
+              >
+                Customer Login
+              </Link>
+            )}
 
             {/* CTA */}
             <Link

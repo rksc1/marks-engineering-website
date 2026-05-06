@@ -103,6 +103,26 @@ export default async function CustomerPortalPage() {
               {quote.status === "IN_PRODUCTION" ? (
                 <p className="mt-5 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">Work has started. Progress updates will appear here as the admin updates the job status.</p>
               ) : null}
+              {quote.status === "QUOTED" || quote.status === "QUOTED_UPDATED" || quote.status === "REVISION_REQUESTED" ? (
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <Link href={`/customer/quotes/${quote.id}#feedback`} className="rounded-md border border-zinc-200 bg-white px-4 py-3 text-center text-sm font-semibold text-zinc-700 hover:bg-zinc-50">
+                    Request Changes
+                  </Link>
+                  <Link href={`/customer/quotes/${quote.id}#actions`} className="rounded-md border border-primary bg-primary/10 px-4 py-3 text-center text-sm font-semibold text-primary hover:bg-primary/20">
+                    Approve
+                  </Link>
+                  <Link href={`/customer/quotes/${quote.id}#actions`} className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700 hover:bg-red-100">
+                    Reject
+                  </Link>
+                </div>
+              ) : null}
+              {quote.status === "APPROVED" || quote.status === "PO_RECEIVED" ? (
+                <div className="mt-5">
+                  <Link href={`/customer/quotes/${quote.id}`} className="inline-flex items-center justify-center rounded-md border border-primary bg-primary/10 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/20">
+                    Upload Purchase Order
+                  </Link>
+                </div>
+              ) : null}
               {quote.adminNotes ? (
                 <div className="mt-5 rounded border bg-zinc-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Team notes</p>

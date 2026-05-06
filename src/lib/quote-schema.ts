@@ -24,18 +24,24 @@ export const quoteStatusValues = [
   "NEW",
   "REVIEWED",
   "QUOTED",
+  "REVISION_REQUESTED",
+  "QUOTED_UPDATED",
   "APPROVED",
+  "PO_RECEIVED",
   "IN_PRODUCTION",
   "COMPLETED",
   "REJECTED"
 ] as const;
 
 export const quoteStatusLabels: Record<(typeof quoteStatusValues)[number], string> = {
-  NEW: "New",
-  REVIEWED: "Reviewed",
-  QUOTED: "Quoted",
+  NEW: "Request received",
+  REVIEWED: "Under review",
+  QUOTED: "Quotation sent",
+  REVISION_REQUESTED: "Revision requested",
+  QUOTED_UPDATED: "Quoted updated",
   APPROVED: "Approved",
-  IN_PRODUCTION: "In Production",
+  PO_RECEIVED: "PO received",
+  IN_PRODUCTION: "Work started",
   COMPLETED: "Completed",
   REJECTED: "Rejected"
 };
@@ -69,4 +75,18 @@ export const quoteStatusSchema = z.object({
   adminNotes: z.string().trim().optional(),
   tags: z.string().trim().optional(),
   followUpAt: z.string().trim().optional()
+});
+
+export const quoteCustomerFeedbackSchema = z.object({
+  quoteRequestId: z.string().min(1),
+  message: z.string().trim().min(10, "Feedback must be at least 10 characters")
+});
+
+export const quoteCustomerDecisionSchema = z.object({
+  quoteRequestId: z.string().min(1)
+});
+
+export const quoteCustomerRejectSchema = z.object({
+  quoteRequestId: z.string().min(1),
+  reason: z.string().trim().optional()
 });

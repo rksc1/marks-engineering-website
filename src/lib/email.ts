@@ -85,6 +85,68 @@ export async function sendQuoteAdminNotification(payload: AdminNotificationPaylo
   });
 }
 
+export async function sendCustomerFeedbackNotification(payload: {
+  quoteId: string;
+  name: string;
+  email: string;
+  message: string;
+}) {
+  const to = process.env.INQUIRY_EMAIL_TO || siteConfig.email;
+  await sendMail({
+    to,
+    subject: `Customer feedback received for ${payload.quoteId}`,
+    html: baseTemplate(
+      `Customer feedback for ${payload.quoteId}`,
+      `
+        <p><strong>${escapeHtml(payload.name)} (${escapeHtml(payload.email)})</strong> sent feedback on quote <strong>${escapeHtml(payload.quoteId)}</strong>.</p>
+        <div style="margin:18px 0;padding:14px;border-left:4px solid #0f766e;background:#f0fdfa">
+          ${escapeHtml(payload.message).replace(/\n/g, "<br />")}
+        </div>
+      `
+    )
+  });
+}
+
+export async function sendCustomerApprovalNotification(payload: {
+  quoteId: string;
+  name: string;
+  email: string;
+}) {
+  const to = process.env.INQUIRY_EMAIL_TO || siteConfig.email;
+  await sendMail({
+    to,
+    subject: `Quotation approved by customer: ${payload.quoteId}`,
+    html: baseTemplate(
+      `Quotation approved`,
+      `
+        <p><strong>${escapeHtml(payload.name)} (${escapeHtml(payload.email)})</strong> approved quote <strong>${escapeHtml(payload.quoteId)}</strong>.</p>
+      `
+    )
+  });
+}
+
+export async function sendPurchaseOrderNotification(payload: {
+  quoteId: string;
+  name: string;
+  email: string;
+  purchaseOrderNumber?: string;
+  fileUrl: string;
+}) {
+  const to = process.env.INQUIRY_EMAIL_TO || siteConfig.email;
+  await sendMail({
+    to,
+    subject: `Purchase order uploaded for ${payload.quoteId}`,
+    html: baseTemplate(
+      `Purchase order received`,
+      `
+        <p><strong>${escapeHtml(payload.name)} (${escapeHtml(payload.email)})</strong> uploaded a purchase order for quote <strong>${escapeHtml(payload.quoteId)}</strong>.</p>
+        <p><strong>PO Number:</strong> ${escapeHtml(payload.purchaseOrderNumber || "N/A")}</p>
+        <p><a href="${escapeHtml(siteConfig.url + payload.fileUrl)}">View uploaded PO</a></p>
+      `
+    )
+  });
+}
+
 export async function sendQuoteReplyEmail(payload: QuoteReplyEmailPayload) {
   const amountLine = payload.amount ? `<p><strong>Estimated amount:</strong> ${escapeHtml(formatCurrency(payload.amount))}</p>` : "";
   const timelineLine = payload.timeline ? `<p><strong>Timeline:</strong> ${escapeHtml(payload.timeline)}</p>` : "";

@@ -68,6 +68,12 @@ export default async function QuoteDetailsPage({ params }: QuotePageProps) {
           </div>
         </div>
 
+        {quote.status === "REVISION_REQUESTED" ? (
+          <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Customer has requested changes for this quote. Review the message in the feedback panel and update the quotation accordingly.
+          </div>
+        ) : null}
+
         <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="grid gap-6">
             <Panel title="Client details">
@@ -166,6 +172,23 @@ export default async function QuoteDetailsPage({ params }: QuotePageProps) {
                 </Button>
               </form>
             </Panel>
+
+            {quote.feedbackHistory && quote.feedbackHistory.length > 0 ? (
+              <Panel title="Customer feedback">
+                <div className="divide-y">
+                  {quote.feedbackHistory.map((event, index) => (
+                    <article key={index} className="py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-zinc-900">{event.sender === "customer" ? "Customer feedback" : "Admin note"}</p>
+                        <span className="rounded-full bg-zinc-200 px-2 py-1 text-[11px] uppercase text-zinc-600">{event.sender}</span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-zinc-700">{event.message}</p>
+                      <p className="mt-1 text-xs text-zinc-500">{event.createdAt.toLocaleString("en-IN")}</p>
+                    </article>
+                  ))}
+                </div>
+              </Panel>
+            ) : null}
 
             <Panel title="Sent replies">
               <div className="divide-y">

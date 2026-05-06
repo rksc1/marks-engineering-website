@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 
 import { getDb } from "@/lib/mongodb";
+import { hashPassword, verifyPassword } from "@/lib/admin-auth";
 import type { quoteStatusValues } from "@/lib/quote-schema";
 
 export type QuoteStatus = (typeof quoteStatusValues)[number];
@@ -35,12 +36,26 @@ export type QuoteRequestDocument = {
   fileType?: string | null;
   fileSize?: number | null;
   status: QuoteStatus;
+  customerFeedback?: string | null;
+  approvedAt?: Date | null;
+  rejectedAt?: Date | null;
+  purchaseOrderUrl?: string | null;
+  purchaseOrderNumber?: string | null;
+  feedbackHistory?: Array<{ sender: "customer" | "admin"; message: string; createdAt: Date }>;
   adminNotes?: string | null;
   tags: string[];
   followUpAt?: Date | null;
   replies: QuoteReplyDocument[];
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type QuoteMessageDocument = {
+  _id?: ObjectId;
+  quoteRequestId: string;
+  sender: "customer" | "admin";
+  message: string;
+  createdAt: Date;
 };
 
 export type AdminUserDocument = {
@@ -57,6 +72,7 @@ export type CustomerDocument = {
   name: string;
   email: string;
   phone: string;
+  password?: string;
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date;
@@ -75,6 +91,12 @@ export async function createQuoteRequest(data: Omit<QuoteRequestDocument, "_id" 
     ...data,
     quoteId,
     status: "NEW",
+    customerFeedback: null,
+    approvedAt: null,
+    rejectedAt: null,
+    purchaseOrderUrl: null,
+    purchaseOrderNumber: null,
+    feedbackHistory: [],
     tags: [],
     replies: [],
     createdAt: now,
@@ -118,17 +140,58 @@ export async function getCustomerQuotes(customer: { email: string; phone: string
   return quotes.map(normalizeQuote);
 }
 
-export async function updateQuoteRequest(id: string, data: Partial<Pick<QuoteRequestDocument, "status" | "adminNotes" | "tags" | "followUpAt">>) {
+export async function updateQuoteRequest(id: string, data: Partial<QuoteRequestDocument>) {
   const db = await getDb();
+  const updates: Partial<QuoteRequestDocument> = {
+    ...data,
+    updatedAt: new Date()
+  };
+
+  if (data.status === "APPROVED") {
+    updates.approvedAt = new Date();
+  }
+  if (data.status === "REJECTED") {
+    updates.rejectedAt = new Date();
+  }
+  if (data.status === "PO_RECEIVED") {
+    updates.approvedAt = updates.approvedAt ?? new Date();
+  }
+
   await db.collection<QuoteRequestDocument>("quote_requests").updateOne(
     { _id: new ObjectId(id) },
     {
-      $set: {
-        ...data,
-        updatedAt: new Date()
-      }
+      $set: updates
     }
   );
+}
+
+export async function addQuoteMessage(quoteRequestId: string, sender: "customer" | "admin", message: string) {
+  const db = await getDb();
+  const now = new Date();
+  await db.collection<QuoteMessageDocument>("quote_messages").insertOne({
+    quoteRequestId,
+    sender,
+    message,
+    createdAt: now
+  });
+
+  await db.collection<QuoteRequestDocument>("quote_requests").updateOne(
+    { _id: new ObjectId(quoteRequestId) },
+    {
+      $push: { feedbackHistory: { sender, message, createdAt: now } },
+      $set: sender === "customer" ? { customerFeedback: message } : {}
+    }
+  );
+}
+
+export async function getQuoteMessages(quoteRequestId: string) {
+  const db = await getDb();
+  const messages = await db
+    .collection<QuoteMessageDocument>("quote_messages")
+    .find({ quoteRequestId })
+    .sort({ createdAt: 1 })
+    .toArray();
+  return messages;
 }
 
 export async function addQuoteReply(id: string, reply: Omit<QuoteReplyDocument, "id" | "sentAt">) {
@@ -146,6 +209,8 @@ export async function addQuoteReply(id: string, reply: Omit<QuoteReplyDocument, 
       $set: { status: "QUOTED", updatedAt: new Date() }
     }
   );
+
+  await addQuoteMessage(id, "admin", `${reply.subject}: ${reply.message}`);
 
   return document;
 }
@@ -187,22 +252,28 @@ export async function findAdminUser(email: string) {
   return db.collection<AdminUserDocument>("admin_users").findOne({ email });
 }
 
-export async function upsertCustomer(data: { name: string; email: string; phone: string }) {
+export async function upsertCustomer(data: { name: string; email: string; phone: string; password?: string }) {
   const db = await getDb();
   const now = new Date();
   const email = data.email.trim().toLowerCase();
   const phone = normalizePhone(data.phone);
 
+  const setFields: Partial<CustomerDocument> = {
+    name: data.name.trim(),
+    email,
+    phone,
+    updatedAt: now,
+    lastLoginAt: now
+  };
+
+  if (data.password) {
+    setFields.password = hashPassword(data.password);
+  }
+
   await db.collection<CustomerDocument>("customers").updateOne(
     { email },
     {
-      $set: {
-        name: data.name.trim(),
-        email,
-        phone,
-        updatedAt: now,
-        lastLoginAt: now
-      },
+      $set: setFields,
       $setOnInsert: {
         createdAt: now
       }
@@ -212,6 +283,21 @@ export async function upsertCustomer(data: { name: string; email: string; phone:
 
   const customer = await db.collection<CustomerDocument>("customers").findOne({ email });
   if (!customer) throw new Error("Unable to create customer");
+  return normalizeCustomer(customer);
+}
+
+export async function findCustomerByEmailAndPassword(emailValue: string, password: string) {
+  const db = await getDb();
+  const email = emailValue.trim().toLowerCase();
+  const customer = await db.collection<CustomerDocument>("customers").findOne({ email });
+  if (!customer || !customer.password) return null;
+  if (!verifyPassword(password, customer.password)) return null;
+
+  await db.collection<CustomerDocument>("customers").updateOne(
+    { _id: customer._id },
+    { $set: { lastLoginAt: new Date(), updatedAt: new Date() } }
+  );
+
   return normalizeCustomer(customer);
 }
 

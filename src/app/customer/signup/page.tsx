@@ -38,11 +38,25 @@ export default async function CustomerSignupPage({ searchParams }: SignupPagePro
             <Label htmlFor="phone">Mobile number</Label>
             <Input id="phone" name="phone" required placeholder="+91" />
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" name="password" type="password" required placeholder="Create password" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="confirmPassword">Confirm password</Label>
+            <Input id="confirmPassword" name="confirmPassword" type="password" required placeholder="Confirm password" />
+          </div>
           <Button type="submit">
             <UserPlus className="h-4 w-4" />
             Sign up
           </Button>
-          {error ? <p className="text-sm font-medium text-red-700">Could not create account. Please check all fields and try again.</p> : null}
+          {error === "nomatch" ? (
+            <p className="text-sm font-medium text-red-700">Passwords do not match.</p>
+          ) : error === "missing" ? (
+            <p className="text-sm font-medium text-red-700">Please fill in all required fields.</p>
+          ) : error === "server" ? (
+            <p className="text-sm font-medium text-red-700">Unable to create account right now. Please try again later.</p>
+          ) : null}
           <p className="text-sm text-zinc-600">
             Already registered? <Link href="/customer/login" className="font-semibold text-primary">Login</Link>
           </p>
