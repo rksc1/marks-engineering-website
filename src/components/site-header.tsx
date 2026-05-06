@@ -44,19 +44,19 @@ export function SiteHeader() {
       <div className="container flex h-20 items-center justify-between gap-4">
 
         {/* LOGO */}
-        <Link href="/" className="flex items-center gap-4" onClick={() => setOpen(false)}>
+        <Link href="/" className="flex items-center gap-3 -ml-2" onClick={() => setOpen(false)}>
           <Image
             src="/MEClogo.svg"
             alt="MARKS Engineering & Co."
-            width={100}
-            height={100}
-            className="h-16 w-16 object-contain hover:opacity-80 transition-opacity"
+            width={84}
+            height={84}
+            className="h-14 w-14 object-contain"
           />
           <span className="min-w-0">
-            <span className="block font-display text-lg font-bold leading-tight text-zinc-950">
+            <span className="block font-display text-base font-semibold leading-tight text-zinc-950">
               MARKS Engineering & Co.
             </span>
-            <span className="block text-sm font-medium uppercase tracking-wide text-zinc-500">
+            <span className="block text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
               Fabrication & Structural Engineering
             </span>
           </span>
