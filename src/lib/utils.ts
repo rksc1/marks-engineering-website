@@ -10,10 +10,10 @@ export const siteConfig = {
   shortName: "MARKS Engineering",
   location: "Bilaspur, Chhattisgarh, India",
   established: "2021",
-  phone: "+91 98765 43210",
-  whatsapp: "919876543210",
-  email: "quotes@marksengineering.co",
-  address: "Industrial area, Bilaspur, Chhattisgarh, India",
+  phone: "+91 93404 73578",
+  whatsapp: "+91 93404 73578",
+  email: "mec.cg2021@gmail.com",
+  address: "Sirgitti, Industrial area, Bilaspur, Chhattisgarh, India",
   description:
     "Industrial fabrication and structural engineering company in Bilaspur, Chhattisgarh, specializing in sheds, mezzanine structures, ACP support frameworks, gates, railings, and custom metal work.",
   url: "https://marksengineering.co"

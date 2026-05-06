@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Phone, X } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { cn, siteConfig, whatsappLink } from "@/lib/utils";
@@ -13,9 +14,6 @@ const navItems = [
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
   { href: "/projects", label: "Projects" },
-  { href: "/get-quote", label: "Get Quote" },
-  { href: "/track-quote", label: "Track Quote" },
-  { href: "/customer/login", label: "Customer Login" },
   { href: "/contact", label: "Contact" }
 ];
 
@@ -25,18 +23,29 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-white/92 backdrop-blur">
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-zinc-950 font-display text-sm font-bold text-white">
-            ME
-          </span>
+      <div className="container flex h-20 items-center justify-between gap-4">
+
+        {/* LOGO */}
+        <Link href="/" className="flex items-center gap-4" onClick={() => setOpen(false)}>
+          <Image
+            src="/MEClogo.svg"
+            alt="MARKS Engineering & Co."
+            width={100}
+            height={100}
+            className="h-16 w-16 object-contain hover:opacity-80 transition-opacity"
+          />
           <span className="min-w-0">
-            <span className="block font-display text-base font-bold leading-tight text-zinc-950">MARKS Engineering & Co.</span>
-            <span className="block text-xs font-medium uppercase tracking-wider text-zinc-500">Fabrication & Structural Engineering</span>
+            <span className="block font-display text-lg font-bold leading-tight text-zinc-950">
+              MARKS Engineering & Co.
+            </span>
+            <span className="block text-sm font-medium uppercase tracking-wide text-zinc-500">
+              Fabrication & Structural Engineering
+            </span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        {/* NAV */}
+        <nav className="hidden items-center gap-2 lg:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -51,28 +60,57 @@ export function SiteHeader() {
           ))}
         </nav>
 
+        {/* RIGHT SIDE */}
         <div className="hidden items-center gap-2 lg:flex">
+
+          {/* LOGIN */}
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/customer/login">
+              Login
+            </Link>
+          </Button>
+
+          {/* CALL */}
           <Button asChild variant="outline" size="sm">
             <a href={`tel:${siteConfig.phone.replace(/\s/g, "")}`}>
               <Phone className="h-4 w-4" />
               Call
             </a>
           </Button>
-          <Button asChild size="sm" variant="industrial">
+
+          {/* WHATSAPP */}
+          <Button asChild size="sm" variant="secondary">
             <a href={whatsappLink()} target="_blank" rel="noreferrer">
               WhatsApp
             </a>
           </Button>
+
+          {/* MAIN CTA */}
+          <Button asChild size="sm" className="bg-black text-white hover:bg-zinc-800">
+            <Link href="/get-quote">
+              Get Quote
+            </Link>
+          </Button>
+
         </div>
 
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen((value) => !value)} aria-label="Toggle menu">
+        {/* MOBILE BUTTON */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={() => setOpen((value) => !value)}
+          aria-label="Toggle menu"
+        >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
-      {open ? (
+      {/* MOBILE MENU */}
+      {open && (
         <div className="border-t bg-white lg:hidden">
           <nav className="container grid gap-1 py-3">
+
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -86,9 +124,28 @@ export function SiteHeader() {
                 {item.label}
               </Link>
             ))}
+
+            {/* LOGIN */}
+            <Link
+              href="/customer/login"
+              onClick={() => setOpen(false)}
+              className="px-3 py-3 text-sm font-semibold text-zinc-700"
+            >
+              Customer Login
+            </Link>
+
+            {/* CTA */}
+            <Link
+              href="/get-quote"
+              onClick={() => setOpen(false)}
+              className="mt-2 rounded-md bg-black text-white text-center py-3"
+            >
+              Get Quote
+            </Link>
+
           </nav>
         </div>
-      ) : null}
+      )}
     </header>
   );
 }
