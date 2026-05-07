@@ -44,6 +44,9 @@ export function SiteFooter() {
             <a href={whatsappLink()} target="_blank" rel="noreferrer" className="hover:text-white">
               Start WhatsApp inquiry
             </a>
+            <Link href="/worker/login" className="hover:text-white">
+              Worker Login
+            </Link>
           </div>
         </div>
       </div>

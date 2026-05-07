@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, BriefcaseBusiness, IndianRupee, Inbox, LogOut, Search } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, IndianRupee, Inbox, LogOut, Search, Users, Calendar, ListTodo, DollarSign } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -175,6 +175,38 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <span className="block text-zinc-500">Follow up {quote.followUpAt?.toLocaleDateString("en-IN")}</span>
                   </Link>
                 ))}
+              </div>
+            </Panel>
+            <Panel title="Worker Management">
+              <div className="grid gap-3">
+                <Link href="/admin/workers" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
+                  <Users className="h-5 w-5 text-zinc-600" />
+                  <div>
+                    <p className="font-semibold">Workers</p>
+                    <p className="text-sm text-zinc-500">Manage worker accounts</p>
+                  </div>
+                </Link>
+                <Link href="/admin/attendance" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
+                  <Calendar className="h-5 w-5 text-zinc-600" />
+                  <div>
+                    <p className="font-semibold">Attendance</p>
+                    <p className="text-sm text-zinc-500">Track work hours</p>
+                  </div>
+                </Link>
+                <Link href="/admin/tasks" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
+                  <ListTodo className="h-5 w-5 text-zinc-600" />
+                  <div>
+                    <p className="font-semibold">Tasks</p>
+                    <p className="text-sm text-zinc-500">Assign and track tasks</p>
+                  </div>
+                </Link>
+                <Link href="/admin/payments" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
+                  <DollarSign className="h-5 w-5 text-zinc-600" />
+                  <div>
+                    <p className="font-semibold">Payments</p>
+                    <p className="text-sm text-zinc-500">Manage wages</p>
+                  </div>
+                </Link>
               </div>
             </Panel>
           </div>
