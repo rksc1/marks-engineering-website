@@ -53,7 +53,7 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
     return "text-yellow-600 bg-yellow-50";
   };
 
-  const handleApproval = async (attendanceId: string, action: "approve" | "reject") => {
+  const handleApproval = async (attendanceId: string, action: "approve" | "reject", approvalType?: "present" | "half-day" | "absent") => {
     try {
       const response = await fetch("/api/admin/attendance/approve", {
         method: "POST",
@@ -61,6 +61,7 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
         body: JSON.stringify({
           attendanceId,
           action,
+          approvalType,
           adminId: "admin", // In a real app, get from session
         }),
       });
@@ -209,18 +210,31 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                  onClick={() => handleApproval(record._id!, "approve")}
+                                  className="h-8 px-2 text-xs text-green-600 hover:text-green-700"
+                                  onClick={() => handleApproval(record._id!, "approve", "present")}
+                                  title="Approve as Full Day"
                                 >
-                                  <Check className="h-4 w-4" />
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Full Day
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                  onClick={() => handleApproval(record._id!, "reject")}
+                                  className="h-8 px-2 text-xs text-yellow-600 hover:text-yellow-700"
+                                  onClick={() => handleApproval(record._id!, "approve", "half-day")}
+                                  title="Approve as Half Day"
                                 >
-                                  <X className="h-4 w-4" />
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Half Day
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs text-red-600 hover:text-red-700"
+                                  onClick={() => handleApproval(record._id!, "reject")}
+                                  title="Reject / Mark Absent"
+                                >
+                                  <X className="h-3 w-3" />
                                 </Button>
                               </div>
                             )}

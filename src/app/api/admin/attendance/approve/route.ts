@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { attendanceId, action, adminId } = await request.json();
+    const { attendanceId, action, approvalType, adminId } = await request.json();
 
     if (!attendanceId || !action || !adminId) {
       return NextResponse.json(
@@ -19,7 +19,15 @@ export async function POST(request: NextRequest) {
 
     let result;
     if (action === "approve") {
-      result = await approveAttendance(attendanceId, adminId);
+      // approvalType should be "present", "half-day", or "absent"
+      const type = (approvalType || "present") as "present" | "half-day" | "absent";
+      if (!["present", "half-day", "absent"].includes(type)) {
+        return NextResponse.json(
+          { error: "Invalid approvalType. Must be 'present', 'half-day', or 'absent'" },
+          { status: 400 }
+        );
+      }
+      result = await approveAttendance(attendanceId, adminId, type);
     } else if (action === "reject") {
       result = await rejectAttendance(attendanceId, adminId);
     } else {

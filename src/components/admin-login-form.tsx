@@ -17,6 +17,7 @@ export function AdminLoginForm() {
     setStatus("loading");
     const response = await fetch("/api/admin/login", {
       method: "POST",
+      credentials: "same-origin",
       body: new FormData(event.currentTarget)
     });
 

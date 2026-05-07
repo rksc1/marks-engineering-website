@@ -20,7 +20,13 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
   const [workers, setWorkers] = useState(initialWorkers);
   const [showForm, setShowForm] = useState(false);
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [workerSummary, setWorkerSummary] = useState<{
+    fullDays: number;
+    halfDays: number;
+    totalWage: number;
+  } | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState("");
   const [advanceNote, setAdvanceNote] = useState("");
   const [formData, setFormData] = useState({
@@ -116,6 +122,37 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
       } else {
         const data = await response.json();
         alert(data.error || "Failed to create advance");
+      }
+    } catch (err) {
+      alert("Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openSummaryModal = async (worker: Worker) => {
+    setSelectedWorker(worker);
+    setLoading(true);
+    
+    try {
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      
+      const response = await fetch(
+        `/api/admin/payout?workerId=${worker._id}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setWorkerSummary({
+          fullDays: data.summary.fullDays,
+          halfDays: data.summary.halfDays,
+          totalWage: data.summary.totalWage,
+        });
+        setShowSummaryModal(true);
+      } else {
+        alert("Failed to load attendance summary");
       }
     } catch (err) {
       alert("Network error");
@@ -269,6 +306,45 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
           </Card>
         )}
 
+        {/* Summary Modal */}
+        {showSummaryModal && selectedWorker && workerSummary && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Attendance Summary - {selectedWorker.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-zinc-600">Full Days</p>
+                  <p className="text-2xl font-bold text-green-600">{workerSummary.fullDays}</p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-zinc-600">Half Days</p>
+                  <p className="text-2xl font-bold text-yellow-600">{workerSummary.halfDays}</p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-zinc-600">Total Earned</p>
+                  <p className="text-2xl font-bold text-blue-600">₹{workerSummary.totalWage.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowSummaryModal(false);
+                    setSelectedWorker(null);
+                    setWorkerSummary(null);
+                  }}
+                  className="w-full"
+                >
+                  Close
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Workers List */}
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {workers.map((worker) => (
@@ -308,6 +384,14 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
                     onClick={() => openAdvanceModal(worker)}
                   >
                     Manage Advances
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => openSummaryModal(worker)}
+                  >
+                    View Summary
                   </Button>
                 </div>
               </CardContent>

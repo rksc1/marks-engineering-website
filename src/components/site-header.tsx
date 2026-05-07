@@ -21,14 +21,25 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [customer, setCustomer] = useState<{ name: string; email: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     async function loadSession() {
       try {
-        const response = await fetch("/api/customer/session", { cache: "no-store" });
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data?.name) setCustomer(data);
+        const [customerResponse, adminResponse] = await Promise.all([
+          fetch("/api/customer/session", { cache: "no-store" }),
+          fetch("/api/admin/session", { cache: "no-store" })
+        ]);
+
+        if (customerResponse.ok) {
+          const customerData = await customerResponse.json();
+          if (customerData?.name) setCustomer(customerData);
+        }
+
+        if (adminResponse.ok) {
+          const adminData = await adminResponse.json();
+          if (adminData?.authenticated) setIsAdmin(true);
+        }
       } catch {
         // ignore
       }
@@ -95,6 +106,12 @@ export function SiteHeader() {
               </Link>
             </Button>
           )}
+
+          {isAdmin && !pathname.startsWith("/admin") ? (
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/admin">Admin</Link>
+            </Button>
+          ) : null}
 
           {/* CALL */}
           <Button asChild variant="outline" size="sm">

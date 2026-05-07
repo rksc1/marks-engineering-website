@@ -166,6 +166,9 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
                           {record.checkOut && ` - ${record.checkOut.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
                         </p>
                       )}
+                      <p className="text-xs text-zinc-500 mt-1">
+                        {record.isApproved === true ? "✓ Approved" : record.isApproved === false ? "✗ Rejected" : "⏳ Pending approval"}
+                      </p>
                     </div>
                     <span className={`text-sm font-semibold ${getStatusColor(record.status)}`}>
                       {record.status}

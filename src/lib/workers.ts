@@ -241,13 +241,20 @@ export async function getTotalWorkerAdvance(workerId: string): Promise<number> {
 }
 
 // Attendance approval operations
-export async function approveAttendance(attendanceId: string, adminId: string): Promise<Attendance | null> {
+export async function approveAttendance(attendanceId: string, adminId: string, approvalType: "present" | "half-day" | "absent" = "present"): Promise<Attendance | null> {
   const db = await getDb();
+  const statusMap = {
+    "present": "Present",
+    "half-day": "Half Day",
+    "absent": "Absent"
+  };
+  
   const result = await db.collection("attendance").findOneAndUpdate(
     { _id: new ObjectId(attendanceId) },
     {
       $set: {
-        isApproved: true,
+        status: statusMap[approvalType],
+        isApproved: approvalType !== "absent",
         approvedBy: adminId,
         approvedAt: new Date()
       }
@@ -266,6 +273,7 @@ export async function rejectAttendance(attendanceId: string, adminId: string): P
     { _id: new ObjectId(attendanceId) },
     {
       $set: {
+        status: "Absent",
         isApproved: false,
         approvedBy: adminId,
         approvedAt: new Date()
@@ -281,7 +289,7 @@ export async function rejectAttendance(attendanceId: string, adminId: string): P
 
 export async function getApprovedAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
   const db = await getDb();
-  const query: any = { workerId, isApproved: true };
+  const query: any = { workerId, status: "Present" };
   if (startDate && endDate) {
     query.date = { $gte: startDate, $lte: endDate };
   }
@@ -289,20 +297,50 @@ export async function getApprovedAttendanceCount(workerId: string, startDate?: D
   return count;
 }
 
+export async function getHalfDayAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
+  const db = await getDb();
+  const query: any = { workerId, status: "Half Day" };
+  if (startDate && endDate) {
+    query.date = { $gte: startDate, $lte: endDate };
+  }
+  const count = await db.collection("attendance").countDocuments(query);
+  return count;
+}
+
+export async function getAttendanceSummary(workerId: string, startDate?: Date, endDate?: Date): Promise<{
+  fullDays: number;
+  halfDays: number;
+  absentDays: number;
+}> {
+  const db = await getDb();
+  const query: any = { workerId };
+  if (startDate && endDate) {
+    query.date = { $gte: startDate, $lte: endDate };
+  }
+  
+  const fullDays = await db.collection("attendance").countDocuments({ ...query, status: "Present" });
+  const halfDays = await db.collection("attendance").countDocuments({ ...query, status: "Half Day" });
+  const absentDays = await db.collection("attendance").countDocuments({ ...query, status: "Absent" });
+  
+  return { fullDays, halfDays, absentDays };
+}
+
 // Payout summary
 export async function getWorkerPayoutSummary(workerId: string, startDate: Date, endDate: Date): Promise<{
   totalWage: number;
   totalAdvance: number;
   netPayable: number;
-  approvedDays: number;
+  fullDays: number;
+  halfDays: number;
 }> {
   const worker = await getWorkerById(workerId);
   if (!worker) {
     throw new Error("Worker not found");
   }
 
-  const approvedDays = await getApprovedAttendanceCount(workerId, startDate, endDate);
-  const totalWage = approvedDays * worker.dailyWage;
+  const fullDays = await getApprovedAttendanceCount(workerId, startDate, endDate);
+  const halfDays = await getHalfDayAttendanceCount(workerId, startDate, endDate);
+  const totalWage = (fullDays * worker.dailyWage) + (halfDays * worker.dailyWage * 0.5);
   const totalAdvance = await getTotalWorkerAdvance(workerId);
   const netPayable = totalWage - totalAdvance;
 
@@ -310,7 +348,8 @@ export async function getWorkerPayoutSummary(workerId: string, startDate: Date, 
     totalWage,
     totalAdvance,
     netPayable,
-    approvedDays
+    fullDays,
+    halfDays
   };
 }
 
@@ -327,6 +366,9 @@ export async function calculateWorkerWage(workerId: string, startDate: Date, end
   const worker = await getWorkerById(workerId);
   if (!worker) return 0;
 
-  const approvedDays = await getApprovedAttendanceCount(workerId, startDate, endDate);
-  return approvedDays * worker.dailyWage;
+  const fullDays = await getApprovedAttendanceCount(workerId, startDate, endDate);
+  const halfDays = await getHalfDayAttendanceCount(workerId, startDate, endDate);
+  
+  // Full day = 100% wage, Half day = 50% wage
+  return (fullDays * worker.dailyWage) + (halfDays * worker.dailyWage * 0.5);
 }
