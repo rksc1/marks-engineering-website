@@ -187,6 +187,16 @@ export function SiteHeader() {
               </Link>
             )}
 
+            {isAdmin && !pathname.startsWith("/admin") ? (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="px-3 py-3 text-sm font-semibold text-zinc-700"
+              >
+                Admin
+              </Link>
+            ) : null}
+
             {/* CTA */}
             <Link
               href="/get-quote"
