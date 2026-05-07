@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
       workerId,
       title,
       description,
+      status: "Pending",
     });
 
     return NextResponse.json({
