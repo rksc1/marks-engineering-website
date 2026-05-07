@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock, User, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Attendance, Worker } from "@/lib/worker-schema";
 
 interface AdminAttendanceProps {
@@ -43,6 +44,36 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
         return "text-red-600 bg-red-50";
       default:
         return "text-zinc-600 bg-zinc-50";
+    }
+  };
+
+  const getApprovalColor = (isApproved: boolean | undefined) => {
+    if (isApproved === true) return "text-green-600 bg-green-50";
+    if (isApproved === false) return "text-red-600 bg-red-50";
+    return "text-yellow-600 bg-yellow-50";
+  };
+
+  const handleApproval = async (attendanceId: string, action: "approve" | "reject") => {
+    try {
+      const response = await fetch("/api/admin/attendance/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attendanceId,
+          action,
+          adminId: "admin", // In a real app, get from session
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update attendance");
+      }
+    } catch (err) {
+      alert("Network error");
     }
   };
 
@@ -127,6 +158,8 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                       <th className="pb-3 font-semibold">Check In</th>
                       <th className="pb-3 font-semibold">Check Out</th>
                       <th className="pb-3 font-semibold">Hours</th>
+                      <th className="pb-3 font-semibold">Approval</th>
+                      <th className="pb-3 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -164,6 +197,33 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                           </td>
                           <td className="py-3">
                             {hours ? `${hours}h` : "-"}
+                          </td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getApprovalColor(record.isApproved)}`}>
+                              {record.isApproved === true ? "Approved" : record.isApproved === false ? "Rejected" : "Pending"}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            {record.isApproved === undefined && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                  onClick={() => handleApproval(record._id!, "approve")}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                  onClick={() => handleApproval(record._id!, "reject")}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

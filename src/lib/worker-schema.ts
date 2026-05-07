@@ -4,6 +4,10 @@ import { z } from "zod";
 export const workerRoles = ["welder", "helper", "supervisor"] as const;
 export type WorkerRole = (typeof workerRoles)[number];
 
+// Payment types
+export const paymentTypes = ["daily", "weekly"] as const;
+export type PaymentType = (typeof paymentTypes)[number];
+
 // Worker schema
 export const WorkerSchema = z.object({
   _id: z.string().optional(),
@@ -11,6 +15,9 @@ export const WorkerSchema = z.object({
   phone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
   role: z.enum(workerRoles),
   pin: z.string().regex(/^\d{4}$/, "PIN must be 4 digits"),
+  dailyWage: z.number().positive("Daily wage must be positive").default(500),
+  paymentType: z.enum(paymentTypes).default("daily"),
+  totalAdvance: z.number().default(0),
   isActive: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
 });
@@ -29,6 +36,9 @@ export const AttendanceSchema = z.object({
   checkIn: z.date().optional(),
   checkOut: z.date().optional(),
   status: z.enum(attendanceStatuses).default("Absent"),
+  isApproved: z.boolean().default(false),
+  approvedBy: z.string().optional(),
+  approvedAt: z.date().optional(),
 });
 
 export type Attendance = z.infer<typeof AttendanceSchema>;
@@ -68,13 +78,40 @@ export const WageSchema = z.object({
 
 export type Wage = z.infer<typeof WageSchema>;
 
+// Worker Advance schema
+export const WorkerAdvanceSchema = z.object({
+  _id: z.string().optional(),
+  workerId: z.string(),
+  amount: z.number().positive(),
+  note: z.string().optional(),
+  createdAt: z.date().default(() => new Date()),
+});
+
+export type WorkerAdvance = z.infer<typeof WorkerAdvanceSchema>;
+
 // Validation helpers
 export function validateWorker(data: unknown): Worker {
-  return WorkerSchema.parse(data);
+  // Handle migration: provide defaults for missing fields
+  const workerData = data as any;
+  const migratedData = {
+    ...workerData,
+    dailyWage: workerData.dailyWage ?? 500, // Default daily wage
+    paymentType: workerData.paymentType ?? "daily",
+    totalAdvance: workerData.totalAdvance ?? 0,
+    isActive: workerData.isActive ?? true,
+    createdAt: workerData.createdAt ?? new Date(),
+  };
+  return WorkerSchema.parse(migratedData);
 }
 
 export function validateAttendance(data: unknown): Attendance {
-  return AttendanceSchema.parse(data);
+  // Handle migration: provide defaults for missing approval fields
+  const attendanceData = data as any;
+  const migratedData = {
+    ...attendanceData,
+    isApproved: attendanceData.isApproved ?? false,
+  };
+  return AttendanceSchema.parse(migratedData);
 }
 
 export function validateTask(data: unknown): Task {
@@ -83,4 +120,7 @@ export function validateTask(data: unknown): Task {
 
 export function validateWage(data: unknown): Wage {
   return WageSchema.parse(data);
+}
+export function validateWorkerAdvance(data: unknown): WorkerAdvance {
+  return WorkerAdvanceSchema.parse(data);
 }

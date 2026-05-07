@@ -8,13 +8,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, phone, role, pin } = await request.json();
+    const { name, phone, role, pin, dailyWage, paymentType } = await request.json();
 
     const worker = await createWorker({
       name,
       phone,
       role,
       pin,
+      dailyWage,
+      paymentType,
+      totalAdvance: 0,
       isActive: true,
     });
 

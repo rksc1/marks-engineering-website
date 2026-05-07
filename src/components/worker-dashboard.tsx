@@ -123,7 +123,7 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
                   Check In
                 </Button>
               )}
-              {todayAttendance?.checkIn && !todayAttendance?.checkOut && (
+              {todayAttendance?.checkIn && !todayAttendance?.checkOut && todayAttendance?.isApproved && (
                 <Button
                   onClick={handleCheckOut}
                   disabled={loading}
@@ -134,6 +134,16 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
                   <XCircle className="mr-2 h-5 w-5" />
                   Check Out
                 </Button>
+              )}
+              {todayAttendance?.checkIn && !todayAttendance?.checkOut && todayAttendance?.isApproved === false && (
+                <div className="flex-1 rounded-lg border-2 border-dashed border-red-200 bg-red-50 p-6 text-center">
+                  <p className="text-sm text-red-600">Check-out pending admin approval</p>
+                </div>
+              )}
+              {todayAttendance?.checkIn && !todayAttendance?.checkOut && todayAttendance?.isApproved === undefined && (
+                <div className="flex-1 rounded-lg border-2 border-dashed border-yellow-200 bg-yellow-50 p-6 text-center">
+                  <p className="text-sm text-yellow-600">Waiting for admin approval to check out</p>
+                </div>
               )}
             </div>
           </CardContent>

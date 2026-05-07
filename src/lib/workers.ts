@@ -5,10 +5,12 @@ import {
   Attendance,
   Task,
   Wage,
+  WorkerAdvance,
   validateWorker,
   validateAttendance,
   validateTask,
   validateWage,
+  validateWorkerAdvance,
   WorkerRole,
   AttendanceStatus,
   TaskStatus,
@@ -75,6 +77,7 @@ export async function checkIn(workerId: string): Promise<Attendance> {
     date: today,
     checkIn: new Date(),
     status: "Present",
+    isApproved: false,
   };
 
   const validated = validateAttendance(attendance);
@@ -87,6 +90,18 @@ export async function checkOut(workerId: string): Promise<Attendance | null> {
   const db = await getDb();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // First check if there's an attendance record for today with check-in but no check-out
+  const existingAttendance = await db.collection("attendance").findOne({
+    workerId,
+    date: today,
+    checkIn: { $exists: true },
+    checkOut: { $exists: false }
+  });
+
+  if (!existingAttendance) {
+    throw new Error("Cannot check out: no check-in found for today or already checked out");
+  }
 
   const result = await db.collection("attendance").findOneAndUpdate(
     { workerId, date: today, checkOut: { $exists: false } },
@@ -199,6 +214,106 @@ export async function getAllWages(): Promise<Wage[]> {
   return wages.map((w) => validateWage({ ...w, _id: w._id.toString() }));
 }
 
+// Worker Advance operations
+export async function createWorkerAdvance(data: Omit<WorkerAdvance, "_id" | "createdAt">): Promise<WorkerAdvance> {
+  const db = await getDb();
+  const validated = validateWorkerAdvance(data);
+  const { _id, ...advanceToInsert } = validated;
+  const result = await db.collection("workerAdvances").insertOne(advanceToInsert);
+  return { ...validated, _id: result.insertedId.toString() };
+}
+
+export async function getWorkerAdvances(workerId: string): Promise<WorkerAdvance[]> {
+  const db = await getDb();
+  const advances = await db.collection("workerAdvances").find({ workerId }).toArray();
+  return advances.map((a) => validateWorkerAdvance({ ...a, _id: a._id.toString() }));
+}
+
+export async function getAllWorkerAdvances(): Promise<WorkerAdvance[]> {
+  const db = await getDb();
+  const advances = await db.collection("workerAdvances").find({}).toArray();
+  return advances.map((a) => validateWorkerAdvance({ ...a, _id: a._id.toString() }));
+}
+
+export async function getTotalWorkerAdvance(workerId: string): Promise<number> {
+  const advances = await getWorkerAdvances(workerId);
+  return advances.reduce((total, advance) => total + advance.amount, 0);
+}
+
+// Attendance approval operations
+export async function approveAttendance(attendanceId: string, adminId: string): Promise<Attendance | null> {
+  const db = await getDb();
+  const result = await db.collection("attendance").findOneAndUpdate(
+    { _id: new ObjectId(attendanceId) },
+    {
+      $set: {
+        isApproved: true,
+        approvedBy: adminId,
+        approvedAt: new Date()
+      }
+    },
+    { returnDocument: "after" }
+  );
+  if (!result || !result.value) {
+    return null;
+  }
+  return validateAttendance({ ...result.value, _id: result.value._id.toString() });
+}
+
+export async function rejectAttendance(attendanceId: string, adminId: string): Promise<Attendance | null> {
+  const db = await getDb();
+  const result = await db.collection("attendance").findOneAndUpdate(
+    { _id: new ObjectId(attendanceId) },
+    {
+      $set: {
+        isApproved: false,
+        approvedBy: adminId,
+        approvedAt: new Date()
+      }
+    },
+    { returnDocument: "after" }
+  );
+  if (!result || !result.value) {
+    return null;
+  }
+  return validateAttendance({ ...result.value, _id: result.value._id.toString() });
+}
+
+export async function getApprovedAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
+  const db = await getDb();
+  const query: any = { workerId, isApproved: true };
+  if (startDate && endDate) {
+    query.date = { $gte: startDate, $lte: endDate };
+  }
+  const count = await db.collection("attendance").countDocuments(query);
+  return count;
+}
+
+// Payout summary
+export async function getWorkerPayoutSummary(workerId: string, startDate: Date, endDate: Date): Promise<{
+  totalWage: number;
+  totalAdvance: number;
+  netPayable: number;
+  approvedDays: number;
+}> {
+  const worker = await getWorkerById(workerId);
+  if (!worker) {
+    throw new Error("Worker not found");
+  }
+
+  const approvedDays = await getApprovedAttendanceCount(workerId, startDate, endDate);
+  const totalWage = approvedDays * worker.dailyWage;
+  const totalAdvance = await getTotalWorkerAdvance(workerId);
+  const netPayable = totalWage - totalAdvance;
+
+  return {
+    totalWage,
+    totalAdvance,
+    netPayable,
+    approvedDays
+  };
+}
+
 // Utility functions
 export function buildWorkerMap(workers: Worker[]) {
   return new Map(
@@ -209,10 +324,9 @@ export function buildWorkerMap(workers: Worker[]) {
 }
 
 export async function calculateWorkerWage(workerId: string, startDate: Date, endDate: Date): Promise<number> {
-  const attendance = await getWorkerAttendance(workerId);
-  const relevantAttendance = attendance.filter(
-    (a) => a.date >= startDate && a.date <= endDate && a.status === "Present"
-  );
-  // Assuming daily wage of 500 for calculation - this should be configurable
-  return relevantAttendance.length * 500;
+  const worker = await getWorkerById(workerId);
+  if (!worker) return 0;
+
+  const approvedDays = await getApprovedAttendanceCount(workerId, startDate, endDate);
+  return approvedDays * worker.dailyWage;
 }

@@ -19,11 +19,17 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
 
   const [workers, setWorkers] = useState(initialWorkers);
   const [showForm, setShowForm] = useState(false);
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [advanceNote, setAdvanceNote] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     role: "" as Worker["role"],
     pin: "",
+    dailyWage: "",
+    paymentType: "daily" as Worker["paymentType"],
   });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -36,12 +42,15 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
       const response = await fetch("/api/admin/workers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          dailyWage: parseFloat(formData.dailyWage),
+        }),
       });
 
       if (response.ok) {
         setShowForm(false);
-        setFormData({ name: "", phone: "", role: "" as Worker["role"], pin: "" });
+        setFormData({ name: "", phone: "", role: "" as Worker["role"], pin: "", dailyWage: "", paymentType: "daily" });
         router.refresh();
       } else {
         const data = await response.json();
@@ -72,6 +81,46 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
       }
     } catch (err) {
       alert("Network error");
+    }
+  };
+
+  const openAdvanceModal = (worker: Worker) => {
+    setSelectedWorker(worker);
+    setAdvanceAmount("");
+    setAdvanceNote("");
+    setShowAdvanceModal(true);
+  };
+
+  const handleAdvanceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWorker) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/advances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workerId: selectedWorker._id,
+          amount: parseFloat(advanceAmount),
+          note: advanceNote,
+        }),
+      });
+
+      if (response.ok) {
+        setShowAdvanceModal(false);
+        setSelectedWorker(null);
+        setAdvanceAmount("");
+        setAdvanceNote("");
+        router.refresh();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to create advance");
+      }
+    } catch (err) {
+      alert("Network error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -141,11 +190,77 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="dailyWage">Daily Wage</Label>
+                  <Input
+                    id="dailyWage"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.dailyWage}
+                    onChange={(e) => setFormData({ ...formData, dailyWage: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="paymentType">Payment Type</Label>
+                  <Select value={formData.paymentType} onValueChange={(value) => setFormData({ ...formData, paymentType: value as Worker["paymentType"] })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="md:col-span-2 flex gap-3">
                   <Button type="submit" disabled={loading}>
                     {loading ? "Creating..." : "Create Worker"}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Advance Modal */}
+        {showAdvanceModal && selectedWorker && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Add Advance for {selectedWorker.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAdvanceSubmit} className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="advanceAmount">Amount</Label>
+                  <Input
+                    id="advanceAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={advanceAmount}
+                    onChange={(e) => setAdvanceAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="advanceNote">Note (Optional)</Label>
+                  <Input
+                    id="advanceNote"
+                    value={advanceNote}
+                    onChange={(e) => setAdvanceNote(e.target.value)}
+                    placeholder="Reason for advance"
+                  />
+                </div>
+                <div className="md:col-span-2 flex gap-3">
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Creating..." : "Create Advance"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowAdvanceModal(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -172,16 +287,29 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
                 <div className="space-y-2 text-sm">
                   <p><strong>Phone:</strong> {worker.phone}</p>
                   <p><strong>Role:</strong> {worker.role.charAt(0).toUpperCase() + worker.role.slice(1)}</p>
+                  <p><strong>Daily Wage:</strong> ₹{worker.dailyWage}</p>
+                  <p><strong>Payment Type:</strong> {worker.paymentType.charAt(0).toUpperCase() + worker.paymentType.slice(1)}</p>
+                  <p><strong>Total Advance:</strong> ₹{worker.totalAdvance}</p>
                   <p><strong>Status:</strong> {worker.isActive ? "Active" : "Inactive"}</p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 w-full"
-                  onClick={() => toggleWorkerStatus(worker._id!, worker.isActive)}
-                >
-                  {worker.isActive ? "Deactivate" : "Activate"}
-                </Button>
+                <div className="mt-4 space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => toggleWorkerStatus(worker._id!, worker.isActive)}
+                  >
+                    {worker.isActive ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => openAdvanceModal(worker)}
+                  >
+                    Manage Advances
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
