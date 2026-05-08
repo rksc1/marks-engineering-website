@@ -58,11 +58,11 @@ export function buildQuotationPdf(quote: QuoteWithReplies, amount?: string | num
   });
 }
 
-function section(doc: any, title: string) {
+function section(doc: PDFKit.PDFDocument, title: string) {
   doc.moveDown(0.5).fontSize(13).fillColor("#b91c1c").text(title).moveDown(0.4).fillColor("#18181b");
 }
 
-function row(doc: any, label: string, value: string) {
+function row(doc: PDFKit.PDFDocument, label: string, value: string) {
   doc.fontSize(10).fillColor("#52525b").text(label, { continued: true, width: 130 });
   doc.fillColor("#18181b").text(`  ${value}`);
 }

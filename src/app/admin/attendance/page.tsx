@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { buildWorkerMap, getAllAttendance, getAllWorkers } from "@/lib/workers";
+import { getAllAttendance, getAllWorkers } from "@/lib/workers";
 import AdminAttendance from "@/components/admin-attendance";
 
 export const metadata: Metadata = {
@@ -18,7 +18,19 @@ export default async function AdminAttendancePage() {
     getAllWorkers(),
   ]);
 
-  const workerMap = buildWorkerMap(workers);
-
-  return <AdminAttendance attendance={attendance} workerMap={workerMap} />;
+  return (
+    <AdminAttendance
+      attendance={attendance.map((record) => ({
+        ...record,
+        date: record.date.toISOString(),
+        checkIn: record.checkIn?.toISOString(),
+        checkOut: record.checkOut?.toISOString(),
+        approvedAt: record.approvedAt?.toISOString(),
+      }))}
+      workers={workers.map((worker) => ({
+        ...worker,
+        createdAt: worker.createdAt.toISOString(),
+      }))}
+    />
+  );
 }

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { updateWorker } from "@/lib/workers";
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Internal server error";
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ workerId: string }> }
@@ -12,7 +16,7 @@ export async function PATCH(
 
   try {
     const { workerId } = await params;
-    const { isActive } = await request.json();
+    const { isActive } = await request.json() as { isActive: boolean };
 
     const worker = await updateWorker(workerId, { isActive });
 
@@ -28,8 +32,8 @@ export async function PATCH(
         isActive: worker.isActive,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Update worker error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

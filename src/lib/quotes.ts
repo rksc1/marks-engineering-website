@@ -40,7 +40,10 @@ export type QuoteRequestDocument = {
   approvedAt?: Date | null;
   rejectedAt?: Date | null;
   purchaseOrderUrl?: string | null;
+  purchaseOrderPublicId?: string | null;
   purchaseOrderNumber?: string | null;
+  quotationUrl?: string | null;
+  quotationPublicId?: string | null;
   feedbackHistory?: Array<{ sender: "customer" | "admin"; message: string; createdAt: Date }>;
   adminNotes?: string | null;
   tags: string[];
@@ -95,7 +98,10 @@ export async function createQuoteRequest(data: Omit<QuoteRequestDocument, "_id" 
     approvedAt: null,
     rejectedAt: null,
     purchaseOrderUrl: null,
+    purchaseOrderPublicId: null,
     purchaseOrderNumber: null,
+    quotationUrl: null,
+    quotationPublicId: null,
     feedbackHistory: [],
     tags: [],
     replies: [],
@@ -161,6 +167,20 @@ export async function updateQuoteRequest(id: string, data: Partial<QuoteRequestD
     { _id: new ObjectId(id) },
     {
       $set: updates
+    }
+  );
+}
+
+export async function updateQuoteQuotationFile(id: string, quotationUrl: string, quotationPublicId: string) {
+  const db = await getDb();
+  await db.collection<QuoteRequestDocument>("quote_requests").updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        quotationUrl,
+        quotationPublicId,
+        updatedAt: new Date()
+      }
     }
   );
 }

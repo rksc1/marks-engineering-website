@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Task, Worker, taskStatuses } from "@/lib/worker-schema";
+import { Task, Worker } from "@/lib/worker-schema";
 
 interface AdminTasksProps {
   tasks: Task[];
@@ -18,7 +18,6 @@ interface AdminTasksProps {
 }
 
 export default function AdminTasks({ tasks: initialTasks, workers }: AdminTasksProps) {
-  const [tasks, setTasks] = useState(initialTasks);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     workerId: "",
@@ -47,7 +46,7 @@ export default function AdminTasks({ tasks: initialTasks, workers }: AdminTasksP
         const data = await response.json();
         alert(data.error || "Failed to create task");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -137,14 +136,14 @@ export default function AdminTasks({ tasks: initialTasks, workers }: AdminTasksP
 
         {/* Tasks List */}
         <div className="mt-8 grid gap-4">
-          {tasks.length === 0 ? (
+          {initialTasks.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-zinc-500">No tasks assigned yet</p>
               </CardContent>
             </Card>
           ) : (
-            tasks.map((task) => {
+            initialTasks.map((task) => {
               const worker = workers.find(w => w._id === task.workerId);
               return (
                 <Card key={task._id}>

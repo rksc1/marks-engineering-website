@@ -43,7 +43,7 @@ export function QuoteForm() {
 
     if (drawing && drawing.size > MAX_UPLOAD_SIZE) {
       setStatus("error");
-      setMessage("Drawing is above 8MB. Please upload a smaller PDF, JPG, PNG, or DWG.");
+      setMessage("Drawing is above 8MB. Please upload a smaller PDF, JPG, PNG, XLSX, XLS, or XLTM file.");
       return;
     }
 
@@ -147,10 +147,10 @@ export function QuoteForm() {
       <div className="grid gap-2">
         <Label htmlFor="drawing">Drawing Upload</Label>
         <div className="rounded-lg border border-dashed bg-zinc-50 p-4">
-          <Input id="drawing" name="drawing" type="file" accept=".pdf,.jpg,.jpeg,.png,.dwg,application/pdf,image/jpeg,image/png" className="bg-white" />
+          <Input id="drawing" name="drawing" type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.xltm,application/pdf,image/jpeg,image/png" className="bg-white" />
           <p className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
             <UploadCloud className="h-4 w-4" />
-            Upload PDF, JPG, PNG, or DWG. Maximum file size: 8MB.
+            Upload PDF, JPG, PNG, XLSX, XLS, or XLTM. Maximum file size: 8MB.
           </p>
           {status === "loading" ? (
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-200">

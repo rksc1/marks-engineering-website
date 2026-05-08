@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { createWorker, updateWorker } from "@/lib/workers";
+import { createWorker } from "@/lib/workers";
+import type { PaymentType, WorkerRole } from "@/lib/worker-schema";
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Internal server error";
+}
 
 export async function POST(request: NextRequest) {
   if (!(await isAdminAuthenticated())) {
@@ -8,7 +13,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, phone, role, pin, dailyWage, paymentType } = await request.json();
+    const { name, phone, role, pin, dailyWage, paymentType } = await request.json() as {
+      name: string;
+      phone: string;
+      role: WorkerRole;
+      pin: string;
+      dailyWage: number;
+      paymentType: PaymentType;
+    };
 
     const worker = await createWorker({
       name,
@@ -31,8 +43,8 @@ export async function POST(request: NextRequest) {
         isActive: worker.isActive,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create worker error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

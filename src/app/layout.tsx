@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-import { FloatingActions } from "@/components/floating-actions";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { SiteChrome } from "@/components/site-chrome";
 import { siteConfig } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -46,10 +44,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-IN">
       <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
-        <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
-        <FloatingActions />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

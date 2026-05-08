@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sendQuoteAcknowledgement, sendQuoteAdminNotification } from "@/lib/email";
 import { storeQuoteUpload } from "@/lib/files";
+import { CLOUDINARY_FOLDERS } from "@/lib/upload-file";
 import { quoteRequestSchema } from "@/lib/quote-schema";
 import { createQuoteRequest } from "@/lib/quotes";
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const upload = formData.get("drawing");
-    const storedFile = upload instanceof File && upload.size > 0 ? await storeQuoteUpload(upload, "quotes") : null;
+    const storedFile = upload instanceof File && upload.size > 0 ? await storeQuoteUpload(upload, CLOUDINARY_FOLDERS.quotations) : null;
     const deadline = parsed.data.deadline ? new Date(parsed.data.deadline) : null;
 
     const quote = await createQuoteRequest({

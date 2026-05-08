@@ -62,7 +62,7 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
         const data = await response.json();
         alert(data.error || "Failed to create worker");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
         const data = await response.json();
         alert(data.error || "Failed to update worker");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     }
   };
@@ -123,7 +123,7 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
         const data = await response.json();
         alert(data.error || "Failed to create advance");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -154,7 +154,7 @@ export default function AdminWorkers({ workers: initialWorkers }: AdminWorkersPr
       } else {
         alert("Failed to load attendance summary");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);

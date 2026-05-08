@@ -7,10 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Worker, Attendance, Task } from "@/lib/worker-schema";
 
+type AttendanceView = Omit<Attendance, "date" | "checkIn" | "checkOut" | "approvedAt"> & {
+  date: Date | string;
+  checkIn?: Date | string;
+  checkOut?: Date | string;
+  approvedAt?: Date | string;
+};
+
+type WorkerView = Omit<Worker, "createdAt"> & {
+  createdAt: Date | string;
+};
+
+type TaskView = Omit<Task, "createdAt" | "updatedAt"> & {
+  createdAt: Date | string;
+  updatedAt: Date | string;
+};
+
 interface WorkerDashboardProps {
-  worker: Worker;
-  todayAttendance?: Attendance;
-  pendingTasks: Task[];
+  worker: WorkerView;
+  todayAttendance?: AttendanceView;
+  pendingTasks: TaskView[];
+}
+
+function toDate(value: Date | string | undefined): Date | undefined {
+  return value ? new Date(value) : undefined;
 }
 
 export default function WorkerDashboard({ worker, todayAttendance, pendingTasks }: WorkerDashboardProps) {
@@ -27,7 +47,7 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
         const data = await response.json();
         alert(data.error || "Check-in failed");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -44,7 +64,7 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
         const data = await response.json();
         alert(data.error || "Check-out failed");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -91,7 +111,7 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Today's Attendance
+              Today&apos;s Attendance
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -101,12 +121,12 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
               </p>
               {todayAttendance?.checkIn && (
                 <p className="text-sm text-zinc-600">
-                  Check-in: {todayAttendance.checkIn.toLocaleTimeString()}
+                  Check-in: {toDate(todayAttendance.checkIn)?.toLocaleTimeString()}
                 </p>
               )}
               {todayAttendance?.checkOut && (
                 <p className="text-sm text-zinc-600">
-                  Check-out: {todayAttendance.checkOut.toLocaleTimeString()}
+                  Check-out: {toDate(todayAttendance.checkOut)?.toLocaleTimeString()}
                 </p>
               )}
             </div>
@@ -123,7 +143,7 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
                   Check In
                 </Button>
               )}
-              {todayAttendance?.checkIn && !todayAttendance?.checkOut && todayAttendance?.isApproved && (
+              {todayAttendance?.checkIn && !todayAttendance?.checkOut && (
                 <Button
                   onClick={handleCheckOut}
                   disabled={loading}
@@ -134,16 +154,6 @@ export default function WorkerDashboard({ worker, todayAttendance, pendingTasks 
                   <XCircle className="mr-2 h-5 w-5" />
                   Check Out
                 </Button>
-              )}
-              {todayAttendance?.checkIn && !todayAttendance?.checkOut && todayAttendance?.isApproved === false && (
-                <div className="flex-1 rounded-lg border-2 border-dashed border-red-200 bg-red-50 p-6 text-center">
-                  <p className="text-sm text-red-600">Check-out pending admin approval</p>
-                </div>
-              )}
-              {todayAttendance?.checkIn && !todayAttendance?.checkOut && todayAttendance?.isApproved === undefined && (
-                <div className="flex-1 rounded-lg border-2 border-dashed border-yellow-200 bg-yellow-50 p-6 text-center">
-                  <p className="text-sm text-yellow-600">Waiting for admin approval to check out</p>
-                </div>
               )}
             </div>
           </CardContent>

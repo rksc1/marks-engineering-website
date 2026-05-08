@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { requireWorkerAuth } from "@/lib/worker-auth";
 import { getWorkerAttendance, getWorkerTasks } from "@/lib/workers";
 import WorkerDashboard from "@/components/worker-dashboard";
@@ -24,9 +23,23 @@ export default async function WorkerDashboardPage() {
 
   return (
     <WorkerDashboard
-      worker={worker}
-      todayAttendance={todayAttendance}
-      pendingTasks={pendingTasks}
+      worker={{ ...worker, createdAt: worker.createdAt.toISOString() }}
+      todayAttendance={
+        todayAttendance
+          ? {
+              ...todayAttendance,
+              date: todayAttendance.date.toISOString(),
+              checkIn: todayAttendance.checkIn?.toISOString(),
+              checkOut: todayAttendance.checkOut?.toISOString(),
+              approvedAt: todayAttendance.approvedAt?.toISOString(),
+            }
+          : undefined
+      }
+      pendingTasks={pendingTasks.map((task) => ({
+        ...task,
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+      }))}
     />
   );
 }

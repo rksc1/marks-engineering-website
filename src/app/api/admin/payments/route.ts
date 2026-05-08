@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { createWage } from "@/lib/workers";
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Internal server error";
+}
+
 export async function POST(request: NextRequest) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { workerId, amount } = await request.json();
+    const { workerId, amount } = await request.json() as { workerId: string; amount: number };
 
     const wage = await createWage({
       workerId,
@@ -28,8 +32,8 @@ export async function POST(request: NextRequest) {
         isPaid: wage.isPaid,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create wage error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

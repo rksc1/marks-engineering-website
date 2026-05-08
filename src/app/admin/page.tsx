@@ -1,30 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, BriefcaseBusiness, IndianRupee, Inbox, LogOut, Search, Users, Calendar, ListTodo, DollarSign } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, IndianRupee, Inbox, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getAdminSession, isAdminAuthenticated } from "@/lib/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { quoteStatusLabels, quoteStatusValues } from "@/lib/quote-schema";
 import { getQuoteMetrics, getQuoteRequests } from "@/lib/quotes";
 
 type StatusValue = (typeof quoteStatusValues)[number];
-type QuoteListItem = {
-  id: string;
-  quoteId: string;
-  name: string;
-  email: string;
-  company?: string | null;
-  title: string;
-  category: string;
-  description: string;
-  status: StatusValue;
-  createdAt: Date;
-  followUpAt?: Date | null;
-  replies: unknown[];
-};
 
 export const metadata: Metadata = {
   title: "Admin Dashboard"
@@ -39,17 +25,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     redirect("/admin/login");
   }
 
-  const session = await getAdminSession();
   const params = await searchParams;
   const query = params?.q?.trim() || "";
   const status = quoteStatusValues.includes(params?.status as StatusValue) ? (params?.status as StatusValue) : "";
 
-  let dbError = "";
-  const [quoteRows, metrics] = await Promise.all([getQuoteRequests({ query, status }), getQuoteMetrics()]).catch((error) => {
-    dbError = error instanceof Error ? error.message : "Unable to connect to MongoDB";
-    return [
-      [],
-      {
+  const data = await Promise.all([getQuoteRequests({ query, status }), getQuoteMetrics()])
+    .then(([quoteRows, metrics]) => ({ quoteRows, metrics, dbError: "" }))
+    .catch((error) => ({
+      quoteRows: [],
+      metrics: {
         totalQuotes: 0,
         newInquiries: 0,
         pendingReplies: 0,
@@ -59,9 +43,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         averageProject: 0,
         categoryDemand: [],
         monthly: []
-      }
-    ] as const;
-  });
+      },
+      dbError: error instanceof Error ? error.message : "Unable to connect to MongoDB"
+    }));
+  const { quoteRows, metrics, dbError } = data;
   const { totalQuotes, newInquiries, pendingReplies, approvedJobs, revenue, conversionRate, averageProject } = metrics;
   const categoryRows = metrics.categoryDemand;
   const followUps = quoteRows.filter((quote) => quote.followUpAt).slice(0, 4);
@@ -69,23 +54,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const monthBuckets = metrics.monthly;
 
   return (
-    <section className="bg-zinc-100 py-10">
-      <div className="container">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Admin</p>
-            <h1 className="mt-2 font-display text-4xl font-bold text-zinc-950">Quote dashboard</h1>
-            <p className="mt-2 text-sm text-zinc-600">Signed in as {session?.name || "Admin"}</p>
-          </div>
-          <form action="/api/admin/logout" method="post">
-            <Button variant="outline">
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </form>
-        </div>
-
-        <div className="mt-8 grid gap-4 md:grid-cols-5">
+    <section>
+      <div>
+        <div className="grid gap-4 md:grid-cols-5">
           <Metric label="Total quotes" value={totalQuotes} icon={<Inbox className="h-5 w-5" />} />
           <Metric label="New inquiries" value={newInquiries} icon={<Search className="h-5 w-5" />} />
           <Metric label="Pending replies" value={pendingReplies} icon={<BriefcaseBusiness className="h-5 w-5" />} />
@@ -175,38 +146,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <span className="block text-zinc-500">Follow up {quote.followUpAt?.toLocaleDateString("en-IN")}</span>
                   </Link>
                 ))}
-              </div>
-            </Panel>
-            <Panel title="Worker Management">
-              <div className="grid gap-3">
-                <Link href="/admin/workers" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
-                  <Users className="h-5 w-5 text-zinc-600" />
-                  <div>
-                    <p className="font-semibold">Workers</p>
-                    <p className="text-sm text-zinc-500">Manage worker accounts</p>
-                  </div>
-                </Link>
-                <Link href="/admin/attendance" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
-                  <Calendar className="h-5 w-5 text-zinc-600" />
-                  <div>
-                    <p className="font-semibold">Attendance</p>
-                    <p className="text-sm text-zinc-500">Track work hours</p>
-                  </div>
-                </Link>
-                <Link href="/admin/tasks" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
-                  <ListTodo className="h-5 w-5 text-zinc-600" />
-                  <div>
-                    <p className="font-semibold">Tasks</p>
-                    <p className="text-sm text-zinc-500">Assign and track tasks</p>
-                  </div>
-                </Link>
-                <Link href="/admin/payments" className="flex items-center gap-3 rounded border p-3 hover:bg-zinc-50">
-                  <DollarSign className="h-5 w-5 text-zinc-600" />
-                  <div>
-                    <p className="font-semibold">Payments</p>
-                    <p className="text-sm text-zinc-500">Manage wages</p>
-                  </div>
-                </Link>
               </div>
             </Panel>
           </div>

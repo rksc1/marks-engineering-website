@@ -7,12 +7,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Worker, Attendance } from "@/lib/worker-schema";
 
+type AttendanceView = Omit<Attendance, "date" | "checkIn" | "checkOut" | "approvedAt"> & {
+  date: Date | string;
+  checkIn?: Date | string;
+  checkOut?: Date | string;
+  approvedAt?: Date | string;
+};
+
+type WorkerView = Omit<Worker, "createdAt"> & {
+  createdAt: Date | string;
+};
+
 interface WorkerAttendanceProps {
-  worker: Worker;
-  attendance: Attendance[];
+  worker: WorkerView;
+  attendance: AttendanceView[];
 }
 
-export default function WorkerAttendance({ worker, attendance }: WorkerAttendanceProps) {
+function toDate(value: Date | string | undefined): Date | undefined {
+  return value ? new Date(value) : undefined;
+}
+
+function isSameDay(left: Date, right: Date): boolean {
+  return left.toDateString() === right.toDateString();
+}
+
+export default function WorkerAttendance({ attendance }: WorkerAttendanceProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -26,7 +45,7 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
         const data = await response.json();
         alert(data.error || "Check-in failed");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -43,7 +62,7 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
         const data = await response.json();
         alert(data.error || "Check-out failed");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setLoading(false);
@@ -52,7 +71,10 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayAttendance = attendance.find((a) => a.date.getTime() === today.getTime());
+  const todayAttendance = attendance.find((a) => {
+    const attendanceDate = toDate(a.date);
+    return attendanceDate ? isSameDay(attendanceDate, today) : false;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -96,12 +118,12 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
               </p>
               {todayAttendance?.checkIn && (
                 <p className="text-sm text-zinc-600">
-                  Check-in: {todayAttendance.checkIn.toLocaleTimeString()}
+                  Check-in: {toDate(todayAttendance.checkIn)?.toLocaleTimeString()}
                 </p>
               )}
               {todayAttendance?.checkOut && (
                 <p className="text-sm text-zinc-600">
-                  Check-out: {todayAttendance.checkOut.toLocaleTimeString()}
+                  Check-out: {toDate(todayAttendance.checkOut)?.toLocaleTimeString()}
                 </p>
               )}
             </div>
@@ -154,7 +176,7 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
                   <div key={record._id} className="flex items-center justify-between rounded border p-3">
                     <div>
                       <p className="font-semibold">
-                        {record.date.toLocaleDateString("en-IN", {
+                        {toDate(record.date)?.toLocaleDateString("en-IN", {
                           weekday: "short",
                           day: "numeric",
                           month: "short",
@@ -162,12 +184,12 @@ export default function WorkerAttendance({ worker, attendance }: WorkerAttendanc
                       </p>
                       {record.checkIn && (
                         <p className="text-sm text-zinc-600">
-                          {record.checkIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          {record.checkOut && ` - ${record.checkOut.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                          {toDate(record.checkIn)?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {record.checkOut && ` - ${toDate(record.checkOut)?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
                         </p>
                       )}
                       <p className="text-xs text-zinc-500 mt-1">
-                        {record.isApproved === true ? "✓ Approved" : record.isApproved === false ? "✗ Rejected" : "⏳ Pending approval"}
+                        {record.approvedAt ? (record.isApproved ? "Approved" : "Rejected") : "Pending approval"}
                       </p>
                     </div>
                     <span className={`text-sm font-semibold ${getStatusColor(record.status)}`}>

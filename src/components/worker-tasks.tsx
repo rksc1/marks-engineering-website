@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Play, CheckCircle, MessageSquare } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,7 @@ interface WorkerTasksProps {
   tasks: Task[];
 }
 
-export default function WorkerTasks({ worker, tasks }: WorkerTasksProps) {
+export default function WorkerTasks({ tasks }: WorkerTasksProps) {
   const [updating, setUpdating] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function WorkerTasks({ worker, tasks }: WorkerTasksProps) {
         const data = await response.json();
         alert(data.error || "Update failed");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setUpdating(null);

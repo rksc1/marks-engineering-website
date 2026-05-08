@@ -11,5 +11,16 @@ export default async function WorkerAttendancePage() {
   const worker = await requireWorkerAuth();
   const attendance = await getWorkerAttendance(worker._id!);
 
-  return <WorkerAttendance worker={worker} attendance={attendance} />;
+  return (
+    <WorkerAttendance
+      worker={{ ...worker, createdAt: worker.createdAt.toISOString() }}
+      attendance={attendance.map((record) => ({
+        ...record,
+        date: record.date.toISOString(),
+        checkIn: record.checkIn?.toISOString(),
+        checkOut: record.checkOut?.toISOString(),
+        approvedAt: record.approvedAt?.toISOString(),
+      }))}
+    />
+  );
 }

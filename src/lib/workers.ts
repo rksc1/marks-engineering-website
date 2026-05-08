@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 import { getDb } from "./mongodb";
 import {
   Worker,
@@ -11,18 +11,27 @@ import {
   validateTask,
   validateWage,
   validateWorkerAdvance,
-  WorkerRole,
-  AttendanceStatus,
-  TaskStatus,
-  WageType,
 } from "./worker-schema";
+
+type AttendanceDocument = Omit<Attendance, "_id"> & {
+  _id?: ObjectId;
+};
 
 // Worker operations
 export async function createWorker(data: Omit<Worker, "_id" | "createdAt">): Promise<Worker> {
   const db = await getDb();
   const validated = validateWorker(data);
-  const { _id, ...workerToInsert } = validated;
-  const result = await db.collection("workers").insertOne(workerToInsert);
+  const result = await db.collection("workers").insertOne({
+    name: validated.name,
+    phone: validated.phone,
+    role: validated.role,
+    pin: validated.pin,
+    dailyWage: validated.dailyWage,
+    paymentType: validated.paymentType,
+    totalAdvance: validated.totalAdvance,
+    isActive: validated.isActive,
+    createdAt: validated.createdAt,
+  });
   return { ...validated, _id: result.insertedId.toString() };
 }
 
@@ -45,10 +54,10 @@ export async function updateWorker(id: string, updates: Partial<Worker>): Promis
     { $set: { ...updates, updatedAt: new Date() } },
     { returnDocument: "after" }
   );
-  if (!result || !result.value) {
+  if (!result) {
     return null;
   }
-  return validateWorker({ ...result.value, _id: result.value._id.toString() });
+  return validateWorker({ ...result, _id: result._id.toString() });
 }
 
 export async function getAllWorkers(): Promise<Worker[]> {
@@ -81,8 +90,16 @@ export async function checkIn(workerId: string): Promise<Attendance> {
   };
 
   const validated = validateAttendance(attendance);
-  const { _id, ...attendanceToInsert } = validated;
-  const result = await db.collection("attendance").insertOne(attendanceToInsert);
+  const result = await db.collection("attendance").insertOne({
+    workerId: validated.workerId,
+    date: validated.date,
+    checkIn: validated.checkIn,
+    checkOut: validated.checkOut,
+    status: validated.status,
+    isApproved: validated.isApproved,
+    approvedBy: validated.approvedBy,
+    approvedAt: validated.approvedAt,
+  });
   return { ...validated, _id: result.insertedId.toString() };
 }
 
@@ -109,16 +126,16 @@ export async function checkOut(workerId: string): Promise<Attendance | null> {
     { returnDocument: "after" }
   );
 
-  if (!result || !result.value) {
+  if (!result) {
     return null;
   }
 
-  return validateAttendance({ ...result.value, _id: result.value._id.toString() });
+  return validateAttendance({ ...result, _id: result._id.toString() });
 }
 
 export async function getWorkerAttendance(workerId: string, date?: Date): Promise<Attendance[]> {
   const db = await getDb();
-  const query: any = { workerId };
+  const query: Filter<AttendanceDocument> = { workerId };
   if (date) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
@@ -127,13 +144,13 @@ export async function getWorkerAttendance(workerId: string, date?: Date): Promis
     query.date = { $gte: start, $lt: end };
   }
 
-  const attendance = await db.collection("attendance").find(query).toArray();
+  const attendance = await db.collection<AttendanceDocument>("attendance").find(query).toArray();
   return attendance.map((a) => validateAttendance({ ...a, _id: a._id.toString() }));
 }
 
 export async function getAllAttendance(date?: Date): Promise<Attendance[]> {
   const db = await getDb();
-  const query: any = {};
+  const query: Filter<AttendanceDocument> = {};
   if (date) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
@@ -142,7 +159,7 @@ export async function getAllAttendance(date?: Date): Promise<Attendance[]> {
     query.date = { $gte: start, $lt: end };
   }
 
-  const attendance = await db.collection("attendance").find(query).toArray();
+  const attendance = await db.collection<AttendanceDocument>("attendance").find(query).toArray();
   return attendance.map((a) => validateAttendance({ ...a, _id: a._id.toString() }));
 }
 
@@ -150,8 +167,16 @@ export async function getAllAttendance(date?: Date): Promise<Attendance[]> {
 export async function createTask(data: Omit<Task, "_id" | "createdAt" | "updatedAt" | "status"> & Partial<Pick<Task, "status">>): Promise<Task> {
   const db = await getDb();
   const validated = validateTask(data);
-  const { _id, ...taskToInsert } = validated;
-  const result = await db.collection("tasks").insertOne(taskToInsert);
+  const result = await db.collection("tasks").insertOne({
+    workOrderId: validated.workOrderId,
+    workerId: validated.workerId,
+    title: validated.title,
+    description: validated.description,
+    status: validated.status,
+    notes: validated.notes,
+    createdAt: validated.createdAt,
+    updatedAt: validated.updatedAt,
+  });
   return { ...validated, _id: result.insertedId.toString() };
 }
 
@@ -168,10 +193,10 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<Ta
     { $set: { ...updates, updatedAt: new Date() } },
     { returnDocument: "after" }
   );
-  if (!result || !result.value) {
+  if (!result) {
     return null;
   }
-  return validateTask({ ...result.value, _id: result.value._id.toString() });
+  return validateTask({ ...result, _id: result._id.toString() });
 }
 
 export async function getAllTasks(): Promise<Task[]> {
@@ -184,8 +209,13 @@ export async function getAllTasks(): Promise<Task[]> {
 export async function createWage(data: Omit<Wage, "_id">): Promise<Wage> {
   const db = await getDb();
   const validated = validateWage(data);
-  const { _id, ...wageToInsert } = validated;
-  const result = await db.collection("wages").insertOne(wageToInsert);
+  const result = await db.collection("wages").insertOne({
+    workerId: validated.workerId,
+    date: validated.date,
+    amount: validated.amount,
+    type: validated.type,
+    isPaid: validated.isPaid,
+  });
   return { ...validated, _id: result.insertedId.toString() };
 }
 
@@ -202,10 +232,10 @@ export async function markWagePaid(id: string): Promise<Wage | null> {
     { $set: { isPaid: true } },
     { returnDocument: "after" }
   );
-  if (!result || !result.value) {
+  if (!result) {
     return null;
   }
-  return validateWage({ ...result.value, _id: result.value._id.toString() });
+  return validateWage({ ...result, _id: result._id.toString() });
 }
 
 export async function getAllWages(): Promise<Wage[]> {
@@ -218,8 +248,12 @@ export async function getAllWages(): Promise<Wage[]> {
 export async function createWorkerAdvance(data: Omit<WorkerAdvance, "_id" | "createdAt">): Promise<WorkerAdvance> {
   const db = await getDb();
   const validated = validateWorkerAdvance(data);
-  const { _id, ...advanceToInsert } = validated;
-  const result = await db.collection("workerAdvances").insertOne(advanceToInsert);
+  const result = await db.collection("workerAdvances").insertOne({
+    workerId: validated.workerId,
+    amount: validated.amount,
+    note: validated.note,
+    createdAt: validated.createdAt,
+  });
   return { ...validated, _id: result.insertedId.toString() };
 }
 
@@ -261,10 +295,10 @@ export async function approveAttendance(attendanceId: string, adminId: string, a
     },
     { returnDocument: "after" }
   );
-  if (!result || !result.value) {
+  if (!result) {
     return null;
   }
-  return validateAttendance({ ...result.value, _id: result.value._id.toString() });
+  return validateAttendance({ ...result, _id: result._id.toString() });
 }
 
 export async function rejectAttendance(attendanceId: string, adminId: string): Promise<Attendance | null> {
@@ -281,29 +315,29 @@ export async function rejectAttendance(attendanceId: string, adminId: string): P
     },
     { returnDocument: "after" }
   );
-  if (!result || !result.value) {
+  if (!result) {
     return null;
   }
-  return validateAttendance({ ...result.value, _id: result.value._id.toString() });
+  return validateAttendance({ ...result, _id: result._id.toString() });
 }
 
 export async function getApprovedAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
   const db = await getDb();
-  const query: any = { workerId, status: "Present" };
+  const query: Filter<AttendanceDocument> = { workerId, status: "Present" };
   if (startDate && endDate) {
     query.date = { $gte: startDate, $lte: endDate };
   }
-  const count = await db.collection("attendance").countDocuments(query);
+  const count = await db.collection<AttendanceDocument>("attendance").countDocuments(query);
   return count;
 }
 
 export async function getHalfDayAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
   const db = await getDb();
-  const query: any = { workerId, status: "Half Day" };
+  const query: Filter<AttendanceDocument> = { workerId, status: "Half Day" };
   if (startDate && endDate) {
     query.date = { $gte: startDate, $lte: endDate };
   }
-  const count = await db.collection("attendance").countDocuments(query);
+  const count = await db.collection<AttendanceDocument>("attendance").countDocuments(query);
   return count;
 }
 
@@ -313,14 +347,14 @@ export async function getAttendanceSummary(workerId: string, startDate?: Date, e
   absentDays: number;
 }> {
   const db = await getDb();
-  const query: any = { workerId };
+  const query: Filter<AttendanceDocument> = { workerId };
   if (startDate && endDate) {
     query.date = { $gte: startDate, $lte: endDate };
   }
   
-  const fullDays = await db.collection("attendance").countDocuments({ ...query, status: "Present" });
-  const halfDays = await db.collection("attendance").countDocuments({ ...query, status: "Half Day" });
-  const absentDays = await db.collection("attendance").countDocuments({ ...query, status: "Absent" });
+  const fullDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...query, status: "Present" });
+  const halfDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...query, status: "Half Day" });
+  const absentDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...query, status: "Absent" });
   
   return { fullDays, halfDays, absentDays };
 }

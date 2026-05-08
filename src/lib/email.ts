@@ -141,7 +141,7 @@ export async function sendPurchaseOrderNotification(payload: {
       `
         <p><strong>${escapeHtml(payload.name)} (${escapeHtml(payload.email)})</strong> uploaded a purchase order for quote <strong>${escapeHtml(payload.quoteId)}</strong>.</p>
         <p><strong>PO Number:</strong> ${escapeHtml(payload.purchaseOrderNumber || "N/A")}</p>
-        <p><a href="${escapeHtml(siteConfig.url + payload.fileUrl)}">View uploaded PO</a></p>
+        <p><a href="${escapeHtml(toAbsoluteUrl(payload.fileUrl))}">View uploaded PO</a></p>
       `
     )
   });
@@ -248,4 +248,9 @@ function escapeHtml(value: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function toAbsoluteUrl(url: string) {
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${siteConfig.url}${url}`;
 }

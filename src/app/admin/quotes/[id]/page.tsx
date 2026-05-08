@@ -43,11 +43,10 @@ export default async function QuoteDetailsPage({ params }: QuotePageProps) {
       <div className="container">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
           <div>
-            <Link href="/admin" className="text-sm font-semibold text-primary">Back to dashboard</Link>
-            <p className="mt-4 font-mono text-sm font-bold text-primary">{quote.quoteId}</p>
+            <p className="font-mono text-sm font-bold text-primary">{quote.quoteId}</p>
             <h1 className="mt-2 font-display text-4xl font-bold text-zinc-950">{quote.title}</h1>
             <p className="mt-2 text-sm text-zinc-600">
-              {quote.name} · {quote.email} {quote.company ? `· ${quote.company}` : ""}
+              {quote.name} - {quote.email} {quote.company ? `- ${quote.company}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -65,6 +64,14 @@ export default async function QuoteDetailsPage({ params }: QuotePageProps) {
                 Generate PDF
               </Link>
             </Button>
+            {quote.quotationUrl ? (
+              <Button asChild variant="outline">
+                <Link href={quote.quotationUrl}>
+                  <FileText className="h-4 w-4" />
+                  Quotation PDF
+                </Link>
+              </Button>
+            ) : null}
           </div>
         </div>
 

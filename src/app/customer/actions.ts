@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getCustomerSession } from "@/lib/customer-auth";
 import { getQuoteRequestById, addQuoteMessage, updateQuoteRequest } from "@/lib/quotes";
-import { storeQuoteUpload } from "@/lib/files";
+import { storePurchaseOrderUpload } from "@/lib/files";
 import {
   sendCustomerFeedbackNotification,
   sendCustomerApprovalNotification,
@@ -108,11 +108,12 @@ export async function uploadPurchaseOrderAction(formData: FormData) {
   if (!quote) throw new Error("Quote not found");
   if (quote.email.toLowerCase() !== session.email.toLowerCase()) throw new Error("Unauthorized");
 
-  const storedFile = await storeQuoteUpload(file, "po");
+  const storedFile = await storePurchaseOrderUpload(file);
   await addQuoteMessage(quote.id, "customer", `Purchase order uploaded${purchaseOrderNumber ? ` (PO #${purchaseOrderNumber})` : ""}`);
   await updateQuoteRequest(quote.id, {
     status: "PO_RECEIVED",
     purchaseOrderUrl: storedFile.fileUrl,
+    purchaseOrderPublicId: storedFile.publicId,
     purchaseOrderNumber: purchaseOrderNumber || null
   });
 

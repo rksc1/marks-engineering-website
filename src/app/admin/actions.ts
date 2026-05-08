@@ -1,7 +1,5 @@
 "use server";
 
-import path from "node:path";
-
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -10,7 +8,8 @@ import { sendQuoteReplyEmail } from "@/lib/email";
 import { storeQuoteUpload } from "@/lib/files";
 import { buildQuotationPdf } from "@/lib/pdf";
 import { quoteReplySchema, quoteStatusSchema } from "@/lib/quote-schema";
-import { addQuoteReply, getQuoteRequestById, updateQuoteRequest } from "@/lib/quotes";
+import { addQuoteReply, getQuoteRequestById, updateQuoteQuotationFile, updateQuoteRequest } from "@/lib/quotes";
+import { CLOUDINARY_FOLDERS, uploadToCloudinary } from "@/lib/upload-file";
 
 export async function updateQuoteStatusAction(formData: FormData) {
   await requireAdmin();
@@ -42,9 +41,15 @@ export async function sendQuoteReplyAction(formData: FormData) {
   if (!quote) throw new Error("Quote request not found");
 
   const attachment = formData.get("attachment");
-  const storedAttachment = attachment instanceof File && attachment.size > 0 ? await storeQuoteUpload(attachment, "quotations") : null;
+  const storedAttachment = attachment instanceof File && attachment.size > 0 ? await storeQuoteUpload(attachment, CLOUDINARY_FOLDERS.quotations) : null;
   const sendGeneratedPdf = formData.get("sendGeneratedPdf") === "on";
   const generatedPdf = sendGeneratedPdf ? await buildQuotationPdf(quote, parsed.data.amount) : null;
+  const generatedUpload = generatedPdf
+    ? await uploadToCloudinary(generatedPdf, CLOUDINARY_FOLDERS.quotations, { fileName: `${quote.quoteId}-quotation.pdf` })
+    : null;
+  if (generatedUpload) {
+    await updateQuoteQuotationFile(quote.id, generatedUpload.secure_url, generatedUpload.public_id);
+  }
 
   await sendQuoteReplyEmail({
     to: quote.email,
@@ -54,7 +59,7 @@ export async function sendQuoteReplyAction(formData: FormData) {
     message: parsed.data.message,
     amount: parsed.data.amount,
     timeline: parsed.data.timeline,
-    attachmentPath: storedAttachment ? path.join(process.cwd(), "public", storedAttachment.fileUrl.replace(/^\//, "")) : null,
+    attachmentPath: storedAttachment?.fileUrl || null,
     attachment: generatedPdf
       ? {
           filename: `${quote.quoteId}-quotation.pdf`,
@@ -69,7 +74,7 @@ export async function sendQuoteReplyAction(formData: FormData) {
     message: parsed.data.message,
     amount: parsed.data.amount,
     timeline: parsed.data.timeline || null,
-    attachmentUrl: storedAttachment?.fileUrl || (sendGeneratedPdf ? `/api/admin/quotes/${quote.id}/quotation.pdf` : null)
+    attachmentUrl: storedAttachment?.fileUrl || generatedUpload?.secure_url || null
   });
 
   revalidatePath("/admin");

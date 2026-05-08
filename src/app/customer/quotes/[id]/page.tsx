@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clock, FileText, LogOut, Upload, CheckCircle2, MessageSquare, XCircle } from "lucide-react";
+import { FileText, LogOut, Upload, CheckCircle2, MessageSquare, XCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { approveQuoteAction, rejectQuoteAction, sendCustomerFeedbackAction, uploadPurchaseOrderAction } from "@/app/customer/actions";
@@ -122,7 +122,7 @@ export default async function CustomerQuoteDetailsPage({ params }: QuotePageProp
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="purchaseOrderFile">Upload purchase order</Label>
-                      <Input id="purchaseOrderFile" name="purchaseOrderFile" type="file" accept=".pdf,image/*" required />
+                      <Input id="purchaseOrderFile" name="purchaseOrderFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.xltm,application/pdf,image/jpeg,image/png" required />
                     </div>
                     <Button type="submit" variant="secondary">
                       <Upload className="h-4 w-4" />

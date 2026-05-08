@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateWorker, createWorkerSession, requireWorkerAuth, destroyWorkerSession } from "@/lib/worker-auth";
+import { authenticateWorker, createWorkerSession } from "@/lib/worker-auth";
 
 export async function POST(request: NextRequest) {
   try {

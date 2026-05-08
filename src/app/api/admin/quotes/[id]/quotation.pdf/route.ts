@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { buildQuotationPdf } from "@/lib/pdf";
-import { getQuoteRequestById } from "@/lib/quotes";
+import { getQuoteRequestById, updateQuoteQuotationFile } from "@/lib/quotes";
+import { CLOUDINARY_FOLDERS, uploadToCloudinary } from "@/lib/upload-file";
 
 type PdfRouteProps = {
   params: Promise<{ id: string }>;
@@ -22,11 +23,9 @@ export async function GET(_request: Request, { params }: PdfRouteProps) {
 
   const latestAmount = quote.replies[0]?.amount ? Number(quote.replies[0].amount) : null;
   const buffer = await buildQuotationPdf(quote, latestAmount);
+  const upload = await uploadToCloudinary(buffer, CLOUDINARY_FOLDERS.quotations, { fileName: `${quote.quoteId}-quotation.pdf` });
 
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${quote.quoteId}-quotation.pdf"`
-    }
-  });
+  await updateQuoteQuotationFile(quote.id, upload.secure_url, upload.public_id);
+
+  return NextResponse.redirect(upload.secure_url);
 }

@@ -1,33 +1,56 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Clock, User, Check, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Calendar, User, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Attendance, Worker } from "@/lib/worker-schema";
 
+type AttendanceView = Omit<Attendance, "date" | "checkIn" | "checkOut" | "approvedAt"> & {
+  date: Date | string;
+  checkIn?: Date | string;
+  checkOut?: Date | string;
+  approvedAt?: Date | string;
+};
+
+type WorkerView = Omit<Worker, "createdAt"> & {
+  createdAt: Date | string;
+};
+
 interface AdminAttendanceProps {
-  attendance: Attendance[];
-  workerMap: Map<string, Worker>;
+  attendance: AttendanceView[];
+  workers: WorkerView[];
 }
 
-export default function AdminAttendance({ attendance, workerMap }: AdminAttendanceProps) {
+function toDate(value: Date | string | undefined): Date | undefined {
+  return value ? new Date(value) : undefined;
+}
+
+function hasAdminDecision(record: AttendanceView): boolean {
+  return Boolean(record.approvedAt);
+}
+
+export default function AdminAttendance({ attendance, workers }: AdminAttendanceProps) {
   const [filter, setFilter] = useState({
-    workerId: "",
+    workerId: "all",
     date: "",
-    status: "",
+    status: "all",
   });
+  const workerMap = useMemo(
+    () => new Map(workers.filter((worker) => worker._id).map((worker) => [worker._id!, worker])),
+    [workers]
+  );
 
   const filteredAttendance = attendance.filter((record) => {
     const worker = workerMap.get(record.workerId);
     if (!worker) return false;
 
-    if (filter.workerId && record.workerId !== filter.workerId) return false;
-    if (filter.status && record.status !== filter.status) return false;
+    if (filter.workerId !== "all" && record.workerId !== filter.workerId) return false;
+    if (filter.status !== "all" && record.status !== filter.status) return false;
     if (filter.date) {
-      const recordDate = record.date.toISOString().split('T')[0];
+      const recordDate = toDate(record.date)?.toISOString().split('T')[0];
       if (recordDate !== filter.date) return false;
     }
 
@@ -47,10 +70,15 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
     }
   };
 
-  const getApprovalColor = (isApproved: boolean | undefined) => {
-    if (isApproved === true) return "text-green-600 bg-green-50";
-    if (isApproved === false) return "text-red-600 bg-red-50";
-    return "text-yellow-600 bg-yellow-50";
+  const getApprovalColor = (record: AttendanceView) => {
+    if (!hasAdminDecision(record)) return "text-yellow-600 bg-yellow-50";
+    if (record.isApproved) return "text-green-600 bg-green-50";
+    return "text-red-600 bg-red-50";
+  };
+
+  const getApprovalLabel = (record: AttendanceView) => {
+    if (!hasAdminDecision(record)) return "Pending";
+    return record.isApproved ? "Approved" : "Rejected";
   };
 
   const handleApproval = async (attendanceId: string, action: "approve" | "reject", approvalType?: "present" | "half-day" | "absent") => {
@@ -73,12 +101,10 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
         const data = await response.json();
         alert(data.error || "Failed to update attendance");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     }
   };
-
-  const workers = Array.from(workerMap.values());
 
   return (
     <section className="bg-zinc-100 py-10">
@@ -102,7 +128,7 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                     <SelectValue placeholder="All workers" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All workers</SelectItem>
+                    <SelectItem value="all">All workers</SelectItem>
                     {workers.map((worker) => (
                       <SelectItem key={worker._id} value={worker._id!}>
                         {worker.name}
@@ -126,7 +152,7 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="all">All statuses</SelectItem>
                     <SelectItem value="Present">Present</SelectItem>
                     <SelectItem value="Half Day">Half Day</SelectItem>
                     <SelectItem value="Absent">Absent</SelectItem>
@@ -166,8 +192,10 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                   <tbody className="divide-y">
                     {filteredAttendance.map((record) => {
                       const worker = workerMap.get(record.workerId);
-                      const hours = record.checkIn && record.checkOut
-                        ? Math.round((record.checkOut.getTime() - record.checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10
+                      const checkIn = toDate(record.checkIn);
+                      const checkOut = toDate(record.checkOut);
+                      const hours = checkIn && checkOut
+                        ? Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10
                         : null;
 
                       return (
@@ -179,7 +207,7 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                             </div>
                           </td>
                           <td className="py-3">
-                            {record.date.toLocaleDateString("en-IN", {
+                            {toDate(record.date)?.toLocaleDateString("en-IN", {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
@@ -191,21 +219,21 @@ export default function AdminAttendance({ attendance, workerMap }: AdminAttendan
                             </span>
                           </td>
                           <td className="py-3">
-                            {record.checkIn ? record.checkIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-"}
+                            {checkIn ? checkIn.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-"}
                           </td>
                           <td className="py-3">
-                            {record.checkOut ? record.checkOut.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-"}
+                            {checkOut ? checkOut.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-"}
                           </td>
                           <td className="py-3">
                             {hours ? `${hours}h` : "-"}
                           </td>
                           <td className="py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getApprovalColor(record.isApproved)}`}>
-                              {record.isApproved === true ? "Approved" : record.isApproved === false ? "Rejected" : "Pending"}
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getApprovalColor(record)}`}>
+                              {getApprovalLabel(record)}
                             </span>
                           </td>
                           <td className="py-3">
-                            {record.isApproved === undefined && (
+                            {!hasAdminDecision(record) && (
                               <div className="flex gap-1">
                                 <Button
                                   size="sm"

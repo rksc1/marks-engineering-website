@@ -39,7 +39,7 @@ export default function AdminPayments({ wages, pendingWages }: AdminPaymentsProp
         const data = await response.json();
         alert(data.error || "Failed to mark as paid");
       }
-    } catch (err) {
+    } catch {
       alert("Network error");
     } finally {
       setProcessing(null);

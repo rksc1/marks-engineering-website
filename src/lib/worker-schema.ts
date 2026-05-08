@@ -92,7 +92,7 @@ export type WorkerAdvance = z.infer<typeof WorkerAdvanceSchema>;
 // Validation helpers
 export function validateWorker(data: unknown): Worker {
   // Handle migration: provide defaults for missing fields
-  const workerData = data as any;
+  const workerData = data as Partial<Worker>;
   const migratedData = {
     ...workerData,
     dailyWage: workerData.dailyWage ?? 500, // Default daily wage
@@ -106,7 +106,7 @@ export function validateWorker(data: unknown): Worker {
 
 export function validateAttendance(data: unknown): Attendance {
   // Handle migration: provide defaults for missing approval fields
-  const attendanceData = data as any;
+  const attendanceData = data as Partial<Attendance>;
   const migratedData = {
     ...attendanceData,
     isApproved: attendanceData.isApproved ?? false,

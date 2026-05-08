@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireWorkerAuth } from "@/lib/worker-auth";
 import { getWorkerTasks, updateTask } from "@/lib/workers";
+import type { Task } from "@/lib/worker-schema";
 
 export async function GET() {
   try {
@@ -27,14 +28,21 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const worker = await requireWorkerAuth();
-    const { taskId, status, notes } = await request.json();
+    await requireWorkerAuth();
+    const { taskId, status, notes } = await request.json() as {
+      taskId?: string;
+      status?: Task["status"];
+      notes?: string;
+    };
 
     if (!taskId) {
       return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
     }
 
-    const updates: any = { status };
+    const updates: Partial<Task> = {};
+    if (status !== undefined) {
+      updates.status = status;
+    }
     if (notes !== undefined) {
       updates.notes = notes;
     }
