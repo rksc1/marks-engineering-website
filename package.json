@@ -16,17 +16,19 @@
     "@radix-ui/react-slot": "^1.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.23.0",
     "lucide-react": "^0.468.0",
     "mongodb": "^6.20.0",
     "next": "^16.2.4",
     "nodemailer": "^7.0.10",
+    "number-to-words": "^1.2.4",
     "pdfkit": "^0.17.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.65.0",
-    "zod": "^4.1.12",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
