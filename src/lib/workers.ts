@@ -20,7 +20,18 @@ type AttendanceDocument = Omit<Attendance, "_id"> & {
 // Worker operations
 export async function createWorker(data: Omit<Worker, "_id" | "createdAt">): Promise<Worker> {
   const db = await getDb();
-  const validated = validateWorker(data);
+  const normalizedPhone = normalizePhone(data.phone);
+  const existingWorker = await db.collection("workers").findOne({ phone: normalizedPhone });
+  if (existingWorker) {
+    throw new Error("This mobile number is already assigned to a worker");
+  }
+
+  const existingCustomer = await db.collection("customers").findOne({ phone: normalizedPhone });
+  if (existingCustomer) {
+    throw new Error("This mobile number is already registered as a customer");
+  }
+
+  const validated = validateWorker({ ...data, phone: normalizedPhone });
   const result = await db.collection("workers").insertOne({
     name: validated.name,
     phone: validated.phone,
@@ -43,15 +54,32 @@ export async function getWorkerById(id: string): Promise<Worker | null> {
 
 export async function getWorkerByPhone(phone: string): Promise<Worker | null> {
   const db = await getDb();
-  const worker = await db.collection("workers").findOne({ phone, isActive: true });
+  const normalizedPhone = normalizePhone(phone);
+  const worker = await db.collection("workers").findOne({ phone: normalizedPhone, isActive: true });
   return worker ? validateWorker({ ...worker, _id: worker._id.toString() }) : null;
 }
 
 export async function updateWorker(id: string, updates: Partial<Worker>): Promise<Worker | null> {
   const db = await getDb();
+  const normalizedUpdates = { ...updates };
+  if (updates.phone) {
+    const normalizedPhone = normalizePhone(updates.phone);
+    const existingWorker = await db.collection("workers").findOne({ phone: normalizedPhone, _id: { $ne: new ObjectId(id) } });
+    if (existingWorker) {
+      throw new Error("This mobile number is already assigned to another worker");
+    }
+
+    const existingCustomer = await db.collection("customers").findOne({ phone: normalizedPhone });
+    if (existingCustomer) {
+      throw new Error("This mobile number is already registered as a customer");
+    }
+
+    normalizedUpdates.phone = normalizedPhone;
+  }
+
   const result = await db.collection("workers").findOneAndUpdate(
     { _id: new ObjectId(id) },
-    { $set: { ...updates, updatedAt: new Date() } },
+    { $set: { ...normalizedUpdates, updatedAt: new Date() } },
     { returnDocument: "after" }
   );
   if (!result) {
@@ -277,6 +305,15 @@ export async function getTotalWorkerAdvance(workerId: string): Promise<number> {
 // Attendance approval operations
 export async function approveAttendance(attendanceId: string, adminId: string, approvalType: "present" | "half-day" | "absent" = "present"): Promise<Attendance | null> {
   const db = await getDb();
+  const attendance = await db.collection("attendance").findOne({ _id: new ObjectId(attendanceId) });
+  if (!attendance) {
+    return null;
+  }
+
+  if (approvalType !== "absent" && (!attendance.checkIn || !attendance.checkOut)) {
+    throw new Error("Attendance can be approved for payment only after worker check-in and check-out are completed");
+  }
+
   const statusMap = {
     "present": "Present",
     "half-day": "Half Day",
@@ -323,7 +360,13 @@ export async function rejectAttendance(attendanceId: string, adminId: string): P
 
 export async function getApprovedAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
   const db = await getDb();
-  const query: Filter<AttendanceDocument> = { workerId, status: "Present" };
+  const query: Filter<AttendanceDocument> = {
+    workerId,
+    status: "Present",
+    isApproved: true,
+    checkIn: { $exists: true },
+    checkOut: { $exists: true }
+  };
   if (startDate && endDate) {
     query.date = { $gte: startDate, $lte: endDate };
   }
@@ -333,7 +376,13 @@ export async function getApprovedAttendanceCount(workerId: string, startDate?: D
 
 export async function getHalfDayAttendanceCount(workerId: string, startDate?: Date, endDate?: Date): Promise<number> {
   const db = await getDb();
-  const query: Filter<AttendanceDocument> = { workerId, status: "Half Day" };
+  const query: Filter<AttendanceDocument> = {
+    workerId,
+    status: "Half Day",
+    isApproved: true,
+    checkIn: { $exists: true },
+    checkOut: { $exists: true }
+  };
   if (startDate && endDate) {
     query.date = { $gte: startDate, $lte: endDate };
   }
@@ -352,8 +401,9 @@ export async function getAttendanceSummary(workerId: string, startDate?: Date, e
     query.date = { $gte: startDate, $lte: endDate };
   }
   
-  const fullDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...query, status: "Present" });
-  const halfDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...query, status: "Half Day" });
+  const payableQuery = { ...query, isApproved: true, checkIn: { $exists: true }, checkOut: { $exists: true } };
+  const fullDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...payableQuery, status: "Present" });
+  const halfDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...payableQuery, status: "Half Day" });
   const absentDays = await db.collection<AttendanceDocument>("attendance").countDocuments({ ...query, status: "Absent" });
   
   return { fullDays, halfDays, absentDays };
@@ -405,4 +455,8 @@ export async function calculateWorkerWage(workerId: string, startDate: Date, end
   
   // Full day = 100% wage, Half day = 50% wage
   return (fullDays * worker.dailyWage) + (halfDays * worker.dailyWage * 0.5);
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/[^\d+]/g, "");
 }

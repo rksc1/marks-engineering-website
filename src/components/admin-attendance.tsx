@@ -197,6 +197,7 @@ export default function AdminAttendance({ attendance, workers }: AdminAttendance
                       const hours = checkIn && checkOut
                         ? Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10
                         : null;
+                      const canApproveForPayment = Boolean(checkIn && checkOut);
 
                       return (
                         <tr key={record._id} className="py-3">
@@ -233,7 +234,9 @@ export default function AdminAttendance({ attendance, workers }: AdminAttendance
                             </span>
                           </td>
                           <td className="py-3">
-                            {!hasAdminDecision(record) && (
+                            {!hasAdminDecision(record) && !canApproveForPayment ? (
+                              <span className="text-xs text-zinc-500">Waiting for checkout</span>
+                            ) : !hasAdminDecision(record) ? (
                               <div className="flex gap-1">
                                 <Button
                                   size="sm"
@@ -265,7 +268,7 @@ export default function AdminAttendance({ attendance, workers }: AdminAttendance
                                   <X className="h-3 w-3" />
                                 </Button>
                               </div>
-                            )}
+                            ) : null}
                           </td>
                         </tr>
                       );

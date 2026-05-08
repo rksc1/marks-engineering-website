@@ -40,6 +40,8 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Customer signup failed", error);
-    return NextResponse.redirect(new URL("/customer/signup?error=server", request.url));
+    const message = error instanceof Error ? error.message : "";
+    const errorCode = message.includes("already") ? "exists" : "server";
+    return NextResponse.redirect(new URL(`/customer/signup?error=${errorCode}`, request.url));
   }
 }

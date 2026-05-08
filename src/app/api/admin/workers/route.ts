@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Create worker error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    const message = getErrorMessage(error);
+    return NextResponse.json({ error: message }, { status: message.includes("already") ? 409 : 500 });
   }
 }

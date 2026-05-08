@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error processing attendance approval:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: error instanceof Error && error.message.includes("check-in and check-out") ? 400 : 500 }
     );
   }
 }

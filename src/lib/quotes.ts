@@ -278,6 +278,24 @@ export async function upsertCustomer(data: { name: string; email: string; phone:
   const email = data.email.trim().toLowerCase();
   const phone = normalizePhone(data.phone);
 
+  const [existingEmail, existingPhone, existingWorker] = await Promise.all([
+    db.collection<CustomerDocument>("customers").findOne({ email }),
+    db.collection<CustomerDocument>("customers").findOne({ phone }),
+    db.collection("workers").findOne({ phone })
+  ]);
+
+  if (existingEmail) {
+    throw new Error("This email is already registered as a customer");
+  }
+
+  if (existingPhone) {
+    throw new Error("This mobile number is already registered as a customer");
+  }
+
+  if (existingWorker) {
+    throw new Error("This mobile number is already assigned to a worker");
+  }
+
   const setFields: Partial<CustomerDocument> = {
     name: data.name.trim(),
     email,

@@ -34,6 +34,7 @@ export async function PATCH(
     });
   } catch (error: unknown) {
     console.error("Update worker error:", error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    const message = getErrorMessage(error);
+    return NextResponse.json({ error: message }, { status: message.includes("already") ? 409 : 500 });
   }
 }

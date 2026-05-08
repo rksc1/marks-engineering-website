@@ -54,6 +54,8 @@ export default async function CustomerSignupPage({ searchParams }: SignupPagePro
             <p className="text-sm font-medium text-red-700">Passwords do not match.</p>
           ) : error === "missing" ? (
             <p className="text-sm font-medium text-red-700">Please fill in all required fields.</p>
+          ) : error === "exists" ? (
+            <p className="text-sm font-medium text-red-700">This email or mobile number is already registered or assigned to a worker.</p>
           ) : error === "server" ? (
             <p className="text-sm font-medium text-red-700">Unable to create account right now. Please try again later.</p>
           ) : null}
